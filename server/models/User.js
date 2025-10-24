@@ -32,18 +32,26 @@ const userSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
+  team: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   phone: {
     type: String,
     trim: true,
     default: ''
   },
   permissions: {
+    canViewItems: { type: Boolean, default: true },
     canCheckout: { type: Boolean, default: true },
     canReturn: { type: Boolean, default: true },
     canApprove: { type: Boolean, default: false },
+    canApproveTransactions: { type: Boolean, default: false },
     canManageItems: { type: Boolean, default: false },
     canManageUsers: { type: Boolean, default: false },
     canViewAnalytics: { type: Boolean, default: false },
+    canManageSettings: { type: Boolean, default: false },
     canBulkImport: { type: Boolean, default: false }
   },
   preferences: {
@@ -104,32 +112,41 @@ userSchema.pre('save', function(next) {
   if (this.isModified('role')) {
     if (this.role === 'admin') {
       this.permissions = {
+        canViewItems: true,
         canCheckout: true,
         canReturn: true,
         canApprove: true,
+        canApproveTransactions: true,
         canManageItems: true,
         canManageUsers: true,
         canViewAnalytics: true,
+        canManageSettings: true,
         canBulkImport: true
       };
     } else if (this.role === 'manager') {
       this.permissions = {
+        canViewItems: true,
         canCheckout: true,
         canReturn: true,
         canApprove: true,
+        canApproveTransactions: true,
         canManageItems: true,
         canManageUsers: false,
         canViewAnalytics: true,
+        canManageSettings: false,
         canBulkImport: true
       };
     } else {
       this.permissions = {
+        canViewItems: true,
         canCheckout: true,
         canReturn: true,
         canApprove: false,
+        canApproveTransactions: false,
         canManageItems: false,
         canManageUsers: false,
         canViewAnalytics: false,
+        canManageSettings: false,
         canBulkImport: false
       };
     }
