@@ -212,12 +212,59 @@ router.post('/checkout', protect, checkPermission('canCheckout'), [
         availableQuantity: itemDoc.availableQuantity - quantity
       });
       
-      // Notify user of successful checkout
+      // Notify user of successful checkout (don't fail checkout if notification fails)
+      try {
+        await createNotification({
+          recipient: userId,
+          type: 'checkout_confirmed',
+          title: 'Checkout Successful',
+          message: `You have successfully checked out ${quantity} unit(s) of ${itemDoc.name}`,
+          priority: 'medium',
+          channels: {
+            email: true,
+            sms: false,
+            push: false,
+            inApp: true
+          },
+          relatedTransaction: transaction._id || transaction.id,
+          relatedItem: item,
+          actionUrl: `/transactions/${transaction._id || transaction.id}`,
+          actionText: 'View Transaction'
+        });
+      } catch (notifError) {
+        console.error('Notification error (non-critical):', notifError);
+      }
+
+      return res.status(201).json({
+        success: true,
+        message: 'Item checked out successfully',
+        data: transaction
+      });
+    }
+
+    // If approval needed, send notifications to managers (don't fail checkout if notification fails)
+    try {
+      await notifyManagers({
+        type: 'approval_request',
+        title: 'Checkout Approval Required',
+        message: `${req.user.name} requested to checkout ${quantity} unit(s) of ${itemDoc.name}`,
+        priority: 'high',
+        relatedTransaction: transaction._id || transaction.id,
+        relatedItem: item,
+        actionUrl: `/admin`,
+        actionText: 'Review in Admin Panel'
+      });
+    } catch (notifError) {
+      console.error('Manager notification error (non-critical):', notifError);
+    }
+
+    // Notify user that approval is required
+    try {
       await createNotification({
         recipient: userId,
-        type: 'checkout_confirmed',
-        title: 'Checkout Successful',
-        message: `You have successfully checked out ${quantity} unit(s) of ${itemDoc.name}`,
+        type: 'approval_request',
+        title: 'Checkout Pending Approval',
+        message: `Your checkout request for ${itemDoc.name} is pending admin approval`,
         priority: 'medium',
         channels: {
           email: true,
@@ -228,46 +275,11 @@ router.post('/checkout', protect, checkPermission('canCheckout'), [
         relatedTransaction: transaction._id || transaction.id,
         relatedItem: item,
         actionUrl: `/transactions/${transaction._id || transaction.id}`,
-        actionText: 'View Transaction'
+        actionText: 'View Request'
       });
-
-      return res.status(201).json({
-        success: true,
-        message: 'Item checked out successfully',
-        data: transaction
-      });
+    } catch (notifError) {
+      console.error('User notification error (non-critical):', notifError);
     }
-
-    // If approval needed, send notifications to managers
-    await notifyManagers({
-      type: 'approval_request',
-      title: 'Checkout Approval Required',
-      message: `${req.user.name} requested to checkout ${quantity} unit(s) of ${itemDoc.name}`,
-      priority: 'high',
-      relatedTransaction: transaction._id || transaction.id,
-      relatedItem: item,
-      actionUrl: `/admin`,
-      actionText: 'Review in Admin Panel'
-    });
-
-    // Notify user that approval is required
-    await createNotification({
-      recipient: userId,
-      type: 'approval_request',
-      title: 'Checkout Pending Approval',
-      message: `Your checkout request for ${itemDoc.name} is pending admin approval`,
-      priority: 'medium',
-      channels: {
-        email: true,
-        sms: false,
-        push: false,
-        inApp: true
-      },
-      relatedTransaction: transaction._id || transaction.id,
-      relatedItem: item,
-      actionUrl: `/transactions/${transaction._id || transaction.id}`,
-      actionText: 'View Request'
-    });
 
     res.status(201).json({
       success: true,
