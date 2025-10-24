@@ -3,14 +3,37 @@
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    
+    <!-- Optimized viewport for mobile devices -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
+    
+    <!-- Mobile web app capable -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="MSA Inventory" />
+    
+    <!-- Theme colors for mobile browsers -->
     <meta name="theme-color" content="#2563eb" />
+    <meta name="msapplication-TileColor" content="#2563eb" />
+    <meta name="msapplication-navbutton-color" content="#2563eb" />
+    
+    <!-- SEO and descriptions -->
     <meta
       name="description"
-      content="MSA Inventory Management System"
+      content="MSA Inventory Management System - Track, manage, and checkout inventory items with QR codes and admin approval workflow. Mobile-optimized for on-the-go access."
     />
+    <meta name="keywords" content="inventory, management, MSA, QR codes, admin panel, checkout, mobile" />
+    
+    <!-- Touch icons for iOS -->
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/logo192.png" />
+    
+    <!-- Web app manifest for PWA -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <!-- App title -->
     <title>MSA Inventory Management</title>
   </head>
   <body>
