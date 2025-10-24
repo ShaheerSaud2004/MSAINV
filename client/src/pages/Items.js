@@ -122,9 +122,8 @@ const Items = () => {
       {/* Items Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {items.map((item) => (
-          <Link
+          <div
             key={item._id || item.id}
-            to={`/items/${item._id || item.id}`}
             className="card hover:shadow-lg transition-shadow"
           >
             <div className="flex justify-between items-start mb-3">
@@ -143,8 +142,11 @@ const Items = () => {
               >
                 {item.status}
               </span>
+              {item.isCheckoutable && item.availableQuantity > 0 && (
+                <span className="badge badge-primary">Checkoutable</span>
+              )}
             </div>
-            <div className="flex justify-between items-center pt-3 border-t">
+            <div className="flex justify-between items-center pt-3 border-t mb-4">
               <div>
                 <p className="text-sm text-gray-600">Available</p>
                 <p className="font-bold text-gray-900">
@@ -156,7 +158,25 @@ const Items = () => {
                 <p className="font-mono text-sm text-gray-900">{item.sku || 'N/A'}</p>
               </div>
             </div>
-          </Link>
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <Link
+                to={`/items/${item._id || item.id}`}
+                className="btn-secondary flex-1 text-center"
+              >
+                View Details
+              </Link>
+              {item.isCheckoutable && item.availableQuantity > 0 && (
+                <Link
+                  to={`/checkout/${item._id || item.id}`}
+                  className="btn-primary flex-1 text-center"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Quick Checkout
+                </Link>
+              )}
+            </div>
+          </div>
         ))}
       </div>
 
