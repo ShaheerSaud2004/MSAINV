@@ -13,7 +13,11 @@ import {
   ArrowRightOnRectangleIcon,
   UserCircleIcon,
   Bars3Icon,
-  XMarkIcon
+  XMarkIcon,
+  PlusCircleIcon,
+  PrinterIcon,
+  ShieldCheckIcon,
+  DocumentChartBarIcon
 } from '@heroicons/react/24/outline';
 
 const Layout = ({ children }) => {
@@ -22,16 +26,65 @@ const Layout = ({ children }) => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, show: true },
-    { name: 'Admin Panel', href: '/admin', icon: UsersIcon, show: user?.role === 'admin' || user?.role === 'manager', badge: true },
-    { name: 'Items', href: '/items', icon: CubeIcon, show: true },
-    { name: 'Transactions', href: '/transactions', icon: ArrowsRightLeftIcon, show: true },
-    { name: 'QR Scanner', href: '/qr-scanner', icon: QrCodeIcon, show: true },
-    { name: 'Print QR Codes', href: '/print-qr-codes', icon: QrCodeIcon, show: user?.permissions?.canManageItems },
-    { name: 'Users', href: '/users', icon: UsersIcon, show: user?.permissions?.canManageUsers },
-    { name: 'Analytics', href: '/analytics', icon: ChartBarIcon, show: user?.permissions?.canViewAnalytics },
-    { name: 'Notifications', href: '/notifications', icon: BellIcon, show: true },
+  // Navigation sections organized by role
+  const navigationSections = [
+    {
+      title: null, // Main navigation (no title)
+      items: [
+        { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, show: true },
+        { name: 'Items', href: '/items', icon: CubeIcon, show: true },
+        { name: 'Transactions', href: '/transactions', icon: ArrowsRightLeftIcon, show: true },
+        { name: 'QR Scanner', href: '/qr-scanner', icon: QrCodeIcon, show: true },
+        { name: 'Notifications', href: '/notifications', icon: BellIcon, show: true },
+      ]
+    },
+    {
+      title: 'Admin & Manager', // Admin/Manager section
+      items: [
+        { 
+          name: 'Admin Panel', 
+          href: '/admin', 
+          icon: ShieldCheckIcon, 
+          show: user?.role === 'admin' || user?.role === 'manager',
+          badge: true 
+        },
+        { 
+          name: 'Add New Item', 
+          href: '/items/new', 
+          icon: PlusCircleIcon, 
+          show: user?.permissions?.canManageItems 
+        },
+        { 
+          name: 'Print QR Codes', 
+          href: '/print-qr-codes', 
+          icon: PrinterIcon, 
+          show: user?.permissions?.canManageItems 
+        },
+        { 
+          name: 'User Management', 
+          href: '/users', 
+          icon: UsersIcon, 
+          show: user?.permissions?.canManageUsers 
+        },
+        { 
+          name: 'Analytics & Reports', 
+          href: '/analytics', 
+          icon: DocumentChartBarIcon, 
+          show: user?.permissions?.canViewAnalytics 
+        },
+      ]
+    },
+    {
+      title: 'Settings', // Settings section
+      items: [
+        { 
+          name: 'Settings', 
+          href: '/settings', 
+          icon: Cog6ToothIcon, 
+          show: user?.permissions?.canManageSettings || user?.role === 'admin'
+        },
+      ]
+    }
   ];
 
   const handleLogout = () => {
@@ -72,23 +125,42 @@ const Layout = ({ children }) => {
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 overflow-y-auto">
-            {navigation.map((item) =>
-              item.show ? (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`flex items-center px-4 py-3 mb-2 rounded-lg transition-colors ${
-                    location.pathname === item.href
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  <item.icon className="w-5 h-5 mr-3" />
-                  <span className="font-medium">{item.name}</span>
-                </Link>
-              ) : null
-            )}
+            {navigationSections.map((section, sectionIndex) => {
+              const visibleItems = section.items.filter(item => item.show);
+              if (visibleItems.length === 0) return null;
+              
+              return (
+                <div key={sectionIndex} className="mb-6">
+                  {section.title && (
+                    <h3 className="px-4 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      {section.title}
+                    </h3>
+                  )}
+                  <div className="space-y-1">
+                    {visibleItems.map((item) => (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        className={`flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
+                          location.pathname === item.href
+                            ? 'bg-blue-50 text-blue-600'
+                            : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                        onClick={() => setSidebarOpen(false)}
+                      >
+                        <div className="flex items-center">
+                          <item.icon className="w-5 h-5 mr-3" />
+                          <span className="font-medium">{item.name}</span>
+                        </div>
+                        {item.badge && (
+                          <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                        )}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </nav>
 
           {/* User Section - Bottom Left */}
