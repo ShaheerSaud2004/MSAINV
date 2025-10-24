@@ -271,14 +271,19 @@ const seedDatabase = async () => {
     console.log('📦 Creating inventory items...');
     let itemCount = 0;
     for (const itemData of inventoryItems) {
+      // Generate SKU from name (first 3 letters + number)
+      const namePrefix = itemData.name.replace(/[^A-Z]/gi, '').substring(0, 3).toUpperCase();
+      const sku = `${namePrefix || 'ITM'}-${String(itemCount + 1).padStart(4, '0')}`;
+      
       const item = new Item({
         name: itemData.name,
         description: itemData.description || '',
         category: itemData.category || 'General',
-        totalQuantity: itemData.quantity,  // FIX: Use totalQuantity not quantity
+        sku: sku,  // ADD: Generate SKU
+        totalQuantity: itemData.quantity,
         availableQuantity: itemData.quantity,
         unit: itemData.unit || 'unit',
-        location: {  // FIX: location is an object!
+        location: {
           building: itemData.location || 'Storage',
           room: '',
           shelf: '',
@@ -287,7 +292,7 @@ const seedDatabase = async () => {
         condition: 'good',
         status: 'active',
         isCheckoutable: true,
-        requiresApproval: true,
+        requiresApproval: false,  // FIX: Don't require approval for regular items
         cost: {
           purchasePrice: 0,
           currentValue: 0,
