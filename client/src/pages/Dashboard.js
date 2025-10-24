@@ -8,30 +8,66 @@ import {
   ArrowTrendingUpIcon,
   ExclamationTriangleIcon,
   ClockIcon,
-  QrCodeIcon
+  QrCodeIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [dashboardData, setDashboardData] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(new Date());
 
   useEffect(() => {
     fetchDashboardData();
+    
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(() => {
+      fetchDashboardData(true); // true = silent refresh (no loading spinner)
+    }, 30000);
+    
+    // Refresh when tab becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchDashboardData(true);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (silent = false) => {
     try {
+      if (!silent) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
+      }
+      
       const response = await analyticsAPI.getDashboard();
       if (response.data.success) {
         setDashboardData(response.data.data);
+        setLastUpdated(new Date());
       }
     } catch (error) {
-      toast.error('Failed to load dashboard data');
+      if (!silent) {
+        toast.error('Failed to load dashboard data');
+      }
       console.error('Dashboard error:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+  
+  const handleManualRefresh = () => {
+    toast.info('Refreshing dashboard...');
+    fetchDashboardData();
   };
 
   if (loading) {
@@ -65,14 +101,32 @@ const Dashboard = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <div>
+        <div className="flex-1">
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">Welcome back! Here's what's happening today.</p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-gray-600">Welcome back! Here's what's happening today.</p>
+            <span className="text-xs text-gray-500">
+              • Last updated: {format(lastUpdated, 'h:mm a')}
+            </span>
+            {refreshing && (
+              <span className="text-xs text-blue-600 animate-pulse">• Refreshing...</span>
+            )}
+          </div>
         </div>
-        <Link to="/qr-scanner" className="btn-primary">
-          <QrCodeIcon className="w-5 h-5 inline mr-2" />
-          Scan QR Code
-        </Link>
+        <div className="flex gap-3">
+          <button
+            onClick={handleManualRefresh}
+            className="btn-secondary flex items-center gap-2"
+            disabled={refreshing}
+          >
+            <ArrowPathIcon className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+          <Link to="/qr-scanner" className="btn-primary">
+            <QrCodeIcon className="w-5 h-5 inline mr-2" />
+            Scan QR Code
+          </Link>
+        </div>
       </div>
 
       {/* Stats Grid */}
