@@ -184,10 +184,13 @@ router.post('/checkout', protect, checkPermission('canCheckout'), [
       });
     }
 
-    // Create transaction - ALWAYS require approval for checkout
+    // Check if item requires approval
+    const needsApproval = itemDoc.requiresApproval || false;
+    
+    // Create transaction
     const transactionData = {
       type: 'checkout',
-      status: 'pending', // Always pending - requires approval
+      status: needsApproval ? 'pending' : 'active',
       item: item,
       user: userId,
       quantity: quantity,
@@ -197,13 +200,45 @@ router.post('/checkout', protect, checkPermission('canCheckout'), [
       destination: destination || {},
       checkoutCondition: itemDoc.condition,
       notes: notes || '',
-      approvalRequired: true, // Always true
+      approvalRequired: needsApproval,
       checkedOutBy: userId
     };
 
     const transaction = await storageService.createTransaction(transactionData);
 
-    // Send approval request notification to managers/admins
+    // If no approval needed, update item quantity immediately
+    if (!needsApproval) {
+      await storageService.updateItem(item, {
+        availableQuantity: itemDoc.availableQuantity - quantity
+      });
+      
+      // Notify user of successful checkout
+      await createNotification({
+        recipient: userId,
+        type: 'checkout_confirmed',
+        title: 'Checkout Successful',
+        message: `You have successfully checked out ${quantity} unit(s) of ${itemDoc.name}`,
+        priority: 'medium',
+        channels: {
+          email: true,
+          sms: false,
+          push: false,
+          inApp: true
+        },
+        relatedTransaction: transaction._id || transaction.id,
+        relatedItem: item,
+        actionUrl: `/transactions/${transaction._id || transaction.id}`,
+        actionText: 'View Transaction'
+      });
+
+      return res.status(201).json({
+        success: true,
+        message: 'Item checked out successfully',
+        data: transaction
+      });
+    }
+
+    // If approval needed, send notifications to managers
     await notifyManagers({
       type: 'approval_request',
       title: 'Checkout Approval Required',
