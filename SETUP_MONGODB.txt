@@ -1,0 +1,99 @@
+============================================================
+  MONGODB ATLAS CONFIGURATION - COPY THIS TO YOUR .ENV
+============================================================
+
+Your MongoDB Atlas is ready! Copy these lines to your files:
+
+============================================================
+1. LOCAL DEVELOPMENT (server/.env)
+============================================================
+
+Add these lines to: server/.env
+
+STORAGE_MODE=mongodb
+MONGODB_URI=mongodb+srv://ss4108_db_user:I7LTEA9LnANLfId9@cluster0.zk8wtbi.mongodb.net/msa-inventory?retryWrites=true&w=majority
+
+
+============================================================
+2. VERCEL DEPLOYMENT (Add to Vercel Dashboard)
+============================================================
+
+When deploying BACKEND to Vercel, add these environment variables:
+
+KEY: STORAGE_MODE
+VALUE: mongodb
+
+KEY: MONGODB_URI
+VALUE: mongodb+srv://ss4108_db_user:I7LTEA9LnANLfId9@cluster0.zk8wtbi.mongodb.net/msa-inventory?retryWrites=true&w=majority
+
+KEY: JWT_SECRET
+VALUE: [Generate a random 32+ character string]
+
+KEY: NODE_ENV
+VALUE: production
+
+KEY: CORS_ORIGIN
+VALUE: https://your-frontend.vercel.app
+
+
+============================================================
+3. QUICK SETUP COMMANDS
+============================================================
+
+# Update your local .env file:
+cd /Users/shaheersaud/MSAInventory/server
+echo "STORAGE_MODE=mongodb" >> .env
+echo "MONGODB_URI=mongodb+srv://ss4108_db_user:I7LTEA9LnANLfId9@cluster0.zk8wtbi.mongodb.net/msa-inventory?retryWrites=true&w=majority" >> .env
+
+# Start server with MongoDB:
+npm run dev
+
+# Create demo users in MongoDB:
+npm run create-demo-users
+
+
+============================================================
+4. YOUR CREDENTIALS (SAVE THESE!)
+============================================================
+
+Username: ss4108_db_user
+Password: I7LTEA9LnANLfId9
+Cluster: cluster0.zk8wtbi.mongodb.net
+Database: msa-inventory
+
+Connection String (Full):
+mongodb+srv://ss4108_db_user:I7LTEA9LnANLfId9@cluster0.zk8wtbi.mongodb.net/msa-inventory?retryWrites=true&w=majority
+
+
+============================================================
+5. VERCEL IP WHITELIST (IMPORTANT!)
+============================================================
+
+To allow Vercel to connect, add this IP range in MongoDB Atlas:
+
+1. Go to: https://cloud.mongodb.com/
+2. Click: Network Access
+3. Click: "ADD IP ADDRESS"
+4. Enter: 0.0.0.0/0 (Allow from anywhere)
+5. Click: Confirm
+
+Note: This allows all IPs. For production, restrict to Vercel IPs only.
+
+
+============================================================
+6. TEST CONNECTION
+============================================================
+
+After adding to .env, run:
+
+cd server
+npm run dev
+
+You should see:
+✅ MongoDB Connected: cluster0.zk8wtbi.mongodb.net
+
+
+============================================================
+DONE! Your app now uses MongoDB Atlas! 🎉
+============================================================
+
