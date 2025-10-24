@@ -257,10 +257,10 @@ const seedDatabase = async () => {
     // Create Users
     console.log('👥 Creating demo users...');
     for (const userData of demoUsers) {
-      const hashedPassword = await bcrypt.hash(userData.password, 10);
+      // Don't hash password here - let the User model's pre-save hook handle it!
       const user = new User({
-        ...userData,
-        password: hashedPassword
+        ...userData
+        // password will be hashed by the pre-save hook
       });
       await user.save();
       console.log(`✅ Created user: ${userData.email} (${userData.role})`);
