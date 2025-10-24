@@ -1,0 +1,24 @@
+# Railway ignore file
+node_modules/
+.git/
+.env.local
+.env.*.local
+*.log
+.DS_Store
+.vscode/
+.idea/
+
+# Don't need these for production
+*.md
+LICENSE
+.gitignore
+.eslintrc*
+.prettierrc*
+
+# Client source files (we only need the build)
+client/src/
+client/public/
+
+# Server development files
+server/storage/data/
+
