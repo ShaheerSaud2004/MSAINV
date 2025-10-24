@@ -19,8 +19,12 @@ const generateToken = (id) => {
 // Log login activity
 const logLoginActivity = async (activityData) => {
   try {
-    const loginActivityFile = path.join(__dirname, '../storage/data/loginActivity.json');
+    const loginActivityDir = path.join(__dirname, '../storage/data');
+    const loginActivityFile = path.join(loginActivityDir, 'loginActivity.json');
     let activities = [];
+    
+    // Ensure directory exists
+    await fs.mkdir(loginActivityDir, { recursive: true });
     
     try {
       const data = await fs.readFile(loginActivityFile, 'utf8');
