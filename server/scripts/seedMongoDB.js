@@ -279,7 +279,7 @@ const seedDatabase = async () => {
         name: itemData.name,
         description: itemData.description || '',
         category: itemData.category || 'General',
-        sku: sku,  // ADD: Generate SKU
+        sku: sku,
         totalQuantity: itemData.quantity,
         availableQuantity: itemData.quantity,
         unit: itemData.unit || 'unit',
@@ -292,7 +292,7 @@ const seedDatabase = async () => {
         condition: 'good',
         status: 'active',
         isCheckoutable: true,
-        requiresApproval: false,  // FIX: Don't require approval for regular items
+        requiresApproval: false,
         cost: {
           purchasePrice: 0,
           currentValue: 0,
@@ -300,7 +300,18 @@ const seedDatabase = async () => {
         },
         notes: itemData.notes || ''
       });
+      
+      // Save first to get the _id
       await item.save();
+      
+      // Now generate QR code and barcode based on _id
+      const itemId = item._id.toString();
+      item.qrCode = `QR-${itemId}`;
+      item.barcode = `${sku.replace('-', '')}-${itemId.substring(itemId.length - 6)}`;
+      
+      // Save again with QR code and barcode
+      await item.save();
+      
       itemCount++;
       if (itemCount % 20 === 0) {
         console.log(`✅ Created ${itemCount} items...`);
