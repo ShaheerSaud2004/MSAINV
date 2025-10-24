@@ -13,6 +13,10 @@ const { sendOverdueNotifications, sendDueSoonReminders } = require('./services/n
 // Initialize express app
 const app = express();
 
+// Trust proxy - Required for Railway and other reverse proxies
+// This allows express-rate-limit to work correctly with X-Forwarded-For header
+app.set('trust proxy', true);
+
 // Connect to database (MongoDB or JSON storage)
 connectDatabase();
 
