@@ -2,6 +2,10 @@ require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
+// Import the real models
+const User = require('../models/User');
+const Item = require('../models/Item');
+
 // MongoDB connection
 const connectDB = async () => {
   try {
@@ -15,53 +19,6 @@ const connectDB = async () => {
     process.exit(1);
   }
 };
-
-// User Schema
-const userSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  role: { type: String, enum: ['admin', 'manager', 'user'], default: 'user' },
-  phone: String,
-  team: String,
-  permissions: {
-    canViewItems: { type: Boolean, default: true },
-    canCheckout: { type: Boolean, default: true },
-    canReturn: { type: Boolean, default: true },
-    canManageItems: { type: Boolean, default: false },
-    canManageUsers: { type: Boolean, default: false },
-    canApproveTransactions: { type: Boolean, default: false },
-    canViewAnalytics: { type: Boolean, default: false },
-    canManageSettings: { type: Boolean, default: false }
-  },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
-});
-
-const User = mongoose.model('User', userSchema);
-
-// Item Schema
-const itemSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  description: String,
-  category: { type: String, default: 'General' },
-  location: { type: String, default: 'Storage' },
-  quantity: { type: Number, required: true, default: 1 },
-  availableQuantity: { type: Number, required: true, default: 1 },
-  unit: { type: String, default: 'unit' },
-  condition: { type: String, enum: ['new', 'good', 'fair', 'poor'], default: 'good' },
-  value: { type: Number, default: 0 },
-  isCheckoutable: { type: Boolean, default: true },
-  requiresApproval: { type: Boolean, default: true },
-  images: [String],
-  tags: [String],
-  qrCode: String,
-  notes: String,
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
-});
-
-const Item = mongoose.model('Item', itemSchema);
 
 // Demo Users Data
 const demoUsers = [
@@ -315,12 +272,28 @@ const seedDatabase = async () => {
     let itemCount = 0;
     for (const itemData of inventoryItems) {
       const item = new Item({
-        ...itemData,
+        name: itemData.name,
+        description: itemData.description || '',
+        category: itemData.category || 'General',
+        totalQuantity: itemData.quantity,  // FIX: Use totalQuantity not quantity
         availableQuantity: itemData.quantity,
+        unit: itemData.unit || 'unit',
+        location: {  // FIX: location is an object!
+          building: itemData.location || 'Storage',
+          room: '',
+          shelf: '',
+          bin: ''
+        },
+        condition: 'good',
+        status: 'active',
         isCheckoutable: true,
         requiresApproval: true,
-        condition: 'good',
-        value: 0
+        cost: {
+          purchasePrice: 0,
+          currentValue: 0,
+          currency: 'USD'
+        },
+        notes: itemData.notes || ''
       });
       await item.save();
       itemCount++;
