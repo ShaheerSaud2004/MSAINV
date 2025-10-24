@@ -1,0 +1,35 @@
+{
+  "name": "msa-inventory-system",
+  "version": "1.0.0",
+  "description": "Full-stack MSA Inventory Management System with QR codes, admin panel, and approval workflow",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "npm run server",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm start",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install",
+    "vercel-build": "cd client && npm install && npm run build"
+  },
+  "keywords": [
+    "inventory",
+    "management",
+    "qr-code",
+    "admin-panel",
+    "react",
+    "nodejs",
+    "express",
+    "mongodb"
+  ],
+  "author": "Shaheer Saud",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ShaheerSaud2004/MSAINV.git"
+  },
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
+  }
+}
+
