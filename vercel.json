@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "msa-inventory-monorepo",
+  "name": "msa-inventory-full-stack",
   "builds": [
     {
       "src": "client/package.json",
@@ -8,9 +8,17 @@
       "config": {
         "distDir": "build"
       }
+    },
+    {
+      "src": "server/server.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "server/server.js"
+    },
     {
       "src": "/static/(.*)",
       "dest": "client/build/static/$1"
@@ -27,6 +35,12 @@
       "src": "/(.*)",
       "dest": "client/build/index.html"
     }
-  ]
+  ],
+  "env": {
+    "BLOB_READ_WRITE_TOKEN": "vercel_blob_rw_f1Bfh0yfVP1k1HVA_qX0GK3Wl9aMgtS4IkrbtrE2zV0Eae9",
+    "STORAGE_MODE": "blob",
+    "JWT_SECRET": "msa-inventory-jwt-secret-change-in-production",
+    "NODE_ENV": "production"
+  }
 }
 
