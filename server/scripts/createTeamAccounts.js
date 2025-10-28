@@ -92,6 +92,7 @@ async function createTeamAccountsJSON() {
       team: teamData.team,
       role: teamData.role,
       phone: '',
+      status: 'active',
       permissions: {
         canCheckout: true,
         canReturn: true,
