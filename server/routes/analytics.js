@@ -28,7 +28,7 @@ router.get('/dashboard', protect, async (req, res) => {
     const activeUsers = users.filter(u => u.status === 'active').length;
 
     // Recent activity (last 10 transactions)
-    const recentTransactions = transactions
+    let recentTransactions = transactions
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(0, 10);
 
@@ -46,6 +46,14 @@ router.get('/dashboard', protect, async (req, res) => {
           };
         })
       );
+    } else {
+      // For MongoDB, convert mongoose documents to plain objects
+      populatedRecentTransactions = recentTransactions.map(t => {
+        if (t.toObject) {
+          return t.toObject();
+        }
+        return t;
+      });
     }
 
     // Top items (most checked out)
@@ -66,14 +74,20 @@ router.get('/dashboard', protect, async (req, res) => {
     const topItems = await Promise.all(
       topItemIds.map(async ({ id, count }) => {
         const item = await storageService.findItemById(id);
-        return item ? { ...item, checkoutCount: count } : null;
+        if (!item) return null;
+        
+        // Convert mongoose document to plain object if needed
+        const itemObj = item.toObject ? item.toObject() : item;
+        return { ...itemObj, checkoutCount: count };
       })
     );
 
     // Category distribution
     const categoryDistribution = {};
     items.forEach(item => {
-      const category = item.category || 'Uncategorized';
+      // Convert to plain object if needed
+      const itemObj = item.toObject ? item.toObject() : item;
+      const category = itemObj.category || 'Uncategorized';
       if (!categoryDistribution[category]) {
         categoryDistribution[category] = 0;
       }
