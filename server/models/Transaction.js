@@ -72,6 +72,47 @@ const penaltySchema = new mongoose.Schema({
   }
 });
 
+const storageVisitSchema = new mongoose.Schema({
+  visitDate: {
+    type: Date,
+    default: Date.now,
+    required: true
+  },
+  visitType: {
+    type: String,
+    enum: ['pickup', 'return', 'inspection', 'maintenance'],
+    required: true
+  },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  photos: [{
+    url: String,
+    caption: String,
+    uploadDate: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  location: {
+    type: String,
+    default: ''
+  },
+  notes: {
+    type: String,
+    default: ''
+  },
+  verifiedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  verifiedDate: {
+    type: Date
+  }
+});
+
 const transactionSchema = new mongoose.Schema({
   transactionNumber: {
     type: String,
@@ -174,6 +215,15 @@ const transactionSchema = new mongoose.Schema({
   },
   extensions: [extensionSchema],
   penalties: [penaltySchema],
+  storageVisits: [storageVisitSchema],
+  requiresStoragePhoto: {
+    type: Boolean,
+    default: true
+  },
+  storagePhotoUploaded: {
+    type: Boolean,
+    default: false
+  },
   isOverdue: {
     type: Boolean,
     default: false

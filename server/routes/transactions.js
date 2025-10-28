@@ -184,13 +184,13 @@ router.post('/checkout', protect, checkPermission('canCheckout'), [
       });
     }
 
-    // Check if item requires approval
-    const needsApproval = itemDoc.requiresApproval || false;
+    // ALL checkouts now require approval for safety and tracking
+    const needsApproval = true; // Changed: Always require approval
     
     // Create transaction
     const transactionData = {
       type: 'checkout',
-      status: needsApproval ? 'pending' : 'active',
+      status: 'pending', // Always pending until approved
       item: item,
       user: userId,
       quantity: quantity,
@@ -200,14 +200,16 @@ router.post('/checkout', protect, checkPermission('canCheckout'), [
       destination: destination || {},
       checkoutCondition: itemDoc.condition,
       notes: notes || '',
-      approvalRequired: needsApproval,
+      approvalRequired: true, // Always true now
+      requiresStoragePhoto: true, // Require photo at storage
+      storagePhotoUploaded: false,
       checkedOutBy: userId
     };
 
     const transaction = await storageService.createTransaction(transactionData);
 
-    // If no approval needed, update item quantity immediately
-    if (!needsApproval) {
+    // Approval is always required now, so skip the immediate checkout logic
+    if (false) { // Disabled - all checkouts need approval
       await storageService.updateItem(item, {
         availableQuantity: itemDoc.availableQuantity - quantity
       });

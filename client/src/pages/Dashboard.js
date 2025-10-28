@@ -9,7 +9,9 @@ import {
   ExclamationTriangleIcon,
   ClockIcon,
   QrCodeIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  ArrowsRightLeftIcon,
+  ChartBarIcon
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 
@@ -80,51 +82,64 @@ const Dashboard = () => {
 
   const { summary, recentActivity, topItems, categoryDistribution } = dashboardData || {};
 
-  const StatCard = ({ title, value, icon: Icon, color, link }) => (
+  const StatCard = ({ title, value, icon: Icon, color, link, gradient }) => (
     <Link
       to={link}
-      className="card hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+      className="group relative overflow-hidden stat-card animate-fade-in"
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+      {/* Gradient background overlay */}
+      <div className={`absolute inset-0 ${gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
+      
+      <div className="relative flex items-center justify-between">
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{title}</p>
+          <p className="text-4xl font-extrabold text-gray-900 mt-3 mb-2">{value}</p>
+          <div className="flex items-center text-xs text-gray-500">
+            <span className="font-medium">View details →</span>
+          </div>
         </div>
-        <div className={`p-3 rounded-full ${color}`}>
-          <Icon className="w-8 h-8 text-white" />
+        <div className={`p-4 rounded-2xl ${color} shadow-lg transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
+          <Icon className="w-10 h-10 text-white" />
         </div>
       </div>
+      
+      {/* Bottom accent line */}
+      <div className={`absolute bottom-0 left-0 right-0 h-1 ${color} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left`}></div>
     </Link>
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 animate-fade-in">
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <div className="flex items-center gap-2 mt-1">
-            <p className="text-gray-600">Welcome back! Here's what's happening today.</p>
-            <span className="text-xs text-gray-500">
-              • Last updated: {format(lastUpdated, 'h:mm a')}
+          <h1 className="text-4xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            Dashboard
+          </h1>
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            <p className="text-gray-600 text-lg">Welcome back! Here's what's happening with your inventory.</p>
+            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+              Last updated: {format(lastUpdated, 'h:mm a')}
             </span>
             {refreshing && (
-              <span className="text-xs text-blue-600 animate-pulse">• Refreshing...</span>
+              <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full animate-pulse font-medium">
+                Refreshing...
+              </span>
             )}
           </div>
         </div>
         <div className="flex gap-3">
           <button
             onClick={handleManualRefresh}
-            className="btn-secondary flex items-center gap-2"
+            className="btn-secondary flex items-center gap-2 shadow-md hover:shadow-lg"
             disabled={refreshing}
           >
             <ArrowPathIcon className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
+            <span className="hidden sm:inline">Refresh</span>
           </button>
-          <Link to="/qr-scanner" className="btn-primary">
+          <Link to="/qr-scanner" className="btn-primary shadow-md hover:shadow-lg">
             <QrCodeIcon className="w-5 h-5 inline mr-2" />
-            Scan QR Code
+            <span className="hidden sm:inline">Scan QR</span>
           </Link>
         </div>
       </div>
@@ -135,46 +150,53 @@ const Dashboard = () => {
           title="Total Items"
           value={summary?.totalItems || 0}
           icon={CubeIcon}
-          color="bg-blue-500"
+          color="bg-gradient-to-br from-blue-500 to-blue-600"
+          gradient="bg-gradient-to-br from-blue-500 to-blue-600"
           link="/items"
         />
         <StatCard
-          title="Active Checkouts"
+          title="Active Transactions"
           value={summary?.activeCheckouts || 0}
           icon={ArrowTrendingUpIcon}
-          color="bg-green-500"
+          color="bg-gradient-to-br from-green-500 to-emerald-600"
+          gradient="bg-gradient-to-br from-green-500 to-emerald-600"
           link="/transactions?status=active"
+        />
+        <StatCard
+          title="Total Users"
+          value={summary?.totalUsers || 0}
+          icon={CubeIcon}
+          color="bg-gradient-to-br from-purple-500 to-purple-600"
+          gradient="bg-gradient-to-br from-purple-500 to-purple-600"
+          link="/users"
         />
         <StatCard
           title="Overdue Items"
           value={summary?.overdueCheckouts || 0}
           icon={ExclamationTriangleIcon}
-          color="bg-red-500"
+          color="bg-gradient-to-br from-red-500 to-red-600"
+          gradient="bg-gradient-to-br from-red-500 to-red-600"
           link="/transactions?status=overdue"
-        />
-        <StatCard
-          title="Pending Approvals"
-          value={summary?.pendingApprovals || 0}
-          icon={ClockIcon}
-          color="bg-yellow-500"
-          link="/transactions?status=pending"
         />
       </div>
 
       {/* Alerts */}
       {summary?.overdueCheckouts > 0 && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
-          <div className="flex items-center">
-            <ExclamationTriangleIcon className="w-6 h-6 text-red-500 mr-3" />
-            <div>
-              <h3 className="text-red-800 font-semibold">Overdue Items Alert</h3>
+        <div className="relative overflow-hidden bg-gradient-to-r from-red-50 via-red-50 to-orange-50 border-l-4 border-red-500 p-6 rounded-xl shadow-lg animate-slide-in">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-red-200 rounded-full -mr-16 -mt-16 opacity-20"></div>
+          <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="p-3 bg-red-100 rounded-xl">
+              <ExclamationTriangleIcon className="w-8 h-8 text-red-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-red-900 font-bold text-lg">Overdue Items Alert</h3>
               <p className="text-red-700 text-sm mt-1">
-                You have {summary.overdueCheckouts} overdue item(s) that require attention.
+                You have <span className="font-bold">{summary.overdueCheckouts}</span> overdue item(s) that require immediate attention.
               </p>
             </div>
             <Link
               to="/transactions?status=overdue"
-              className="ml-auto btn-danger"
+              className="btn-danger whitespace-nowrap shadow-md hover:shadow-lg"
             >
               View Overdue
             </Link>
@@ -183,18 +205,21 @@ const Dashboard = () => {
       )}
 
       {summary?.pendingApprovals > 0 && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg">
-          <div className="flex items-center">
-            <ClockIcon className="w-6 h-6 text-yellow-500 mr-3" />
-            <div>
-              <h3 className="text-yellow-800 font-semibold">Pending Approvals</h3>
+        <div className="relative overflow-hidden bg-gradient-to-r from-yellow-50 via-yellow-50 to-amber-50 border-l-4 border-yellow-500 p-6 rounded-xl shadow-lg animate-slide-in">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-200 rounded-full -mr-16 -mt-16 opacity-20"></div>
+          <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="p-3 bg-yellow-100 rounded-xl">
+              <ClockIcon className="w-8 h-8 text-yellow-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-yellow-900 font-bold text-lg">Pending Approvals</h3>
               <p className="text-yellow-700 text-sm mt-1">
-                {summary.pendingApprovals} checkout request(s) waiting for approval.
+                <span className="font-bold">{summary.pendingApprovals}</span> checkout request(s) waiting for your approval.
               </p>
             </div>
             <Link
               to="/transactions?status=pending"
-              className="ml-auto px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
+              className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white rounded-lg hover:from-yellow-600 hover:to-yellow-700 font-medium shadow-md hover:shadow-lg transition-all whitespace-nowrap"
             >
               Review Requests
             </Link>
@@ -205,111 +230,239 @@ const Dashboard = () => {
       {/* Recent Activity & Top Items */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activity */}
-        <div className="card">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Activity</h2>
+        <div className="card animate-fade-in">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Recent Activity</h2>
+            <Link
+              to="/transactions"
+              className="text-sm text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 group"
+            >
+              View all
+              <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
           <div className="space-y-3">
             {recentActivity && recentActivity.length > 0 ? (
-              recentActivity.slice(0, 5).map((transaction) => (
+              recentActivity.slice(0, 5).map((transaction, index) => (
                 <div
                   key={transaction._id || transaction.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="activity-item group cursor-pointer"
+                  style={{ animationDelay: `${index * 0.1}s` }}
                 >
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">
-                      {transaction.item?.name || 'Unknown Item'}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {transaction.user?.name || 'Unknown User'} •{' '}
-                      {transaction.type}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span
-                      className={`badge ${
-                        transaction.status === 'active'
-                          ? 'badge-success'
-                          : transaction.status === 'overdue'
-                          ? 'badge-danger'
-                          : transaction.status === 'pending'
-                          ? 'badge-warning'
-                          : 'badge-gray'
-                      }`}
-                    >
-                      {transaction.status}
-                    </span>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {format(new Date(transaction.createdAt), 'MMM dd, yyyy')}
-                    </p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+                        {transaction.item?.name || 'Unknown Item'}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        <span className="font-medium">{transaction.user?.name || 'Unknown User'}</span>
+                        <span className="mx-1">•</span>
+                        <span className="capitalize">{transaction.type}</span>
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {format(new Date(transaction.createdAt), 'MMM dd, yyyy • h:mm a')}
+                      </p>
+                    </div>
+                    <div className="flex-shrink-0">
+                      <span
+                        className={`badge ${
+                          transaction.status === 'active'
+                            ? 'badge-success'
+                            : transaction.status === 'overdue'
+                            ? 'badge-danger'
+                            : transaction.status === 'pending'
+                            ? 'badge-warning'
+                            : 'badge-gray'
+                        }`}
+                      >
+                        {transaction.status}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-gray-500 text-center py-4">No recent activity</p>
+              <div className="text-center py-12">
+                <div className="inline-block p-4 bg-gray-100 rounded-full mb-3">
+                  <ArrowsRightLeftIcon className="w-8 h-8 text-gray-400" />
+                </div>
+                <p className="text-gray-500 font-medium">No recent activity</p>
+                <p className="text-gray-400 text-sm mt-1">Transactions will appear here</p>
+              </div>
             )}
           </div>
-          <Link
-            to="/transactions"
-            className="block text-center text-blue-600 hover:text-blue-700 font-medium mt-4"
-          >
-            View All Transactions →
-          </Link>
         </div>
 
         {/* Top Items */}
-        <div className="card">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Most Checked Out Items</h2>
+        <div className="card animate-fade-in">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Most Checked Out Items</h2>
+            <Link
+              to="/items"
+              className="text-sm text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 group"
+            >
+              View all
+              <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
           <div className="space-y-3">
             {topItems && topItems.length > 0 ? (
               topItems.map((item, index) => (
                 <div
                   key={item._id || item.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="activity-item group cursor-pointer"
+                  style={{ animationDelay: `${index * 0.1}s` }}
                 >
-                  <div className="flex items-center flex-1">
-                    <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold mr-3">
-                      {index + 1}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center flex-1 min-w-0">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-white mr-4 shadow-md transform group-hover:scale-110 transition-transform ${
+                        index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-500' :
+                        index === 1 ? 'bg-gradient-to-br from-gray-400 to-gray-500' :
+                        index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-500' :
+                        'bg-gradient-to-br from-blue-500 to-blue-600'
+                      }`}>
+                        {index + 1}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-gray-900 truncate group-hover:text-blue-600 transition-colors">{item.name}</p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          <span className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                            {item.category}
+                          </span>
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{item.name}</p>
-                      <p className="text-sm text-gray-600">{item.category}</p>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                        {item.checkoutCount}
+                      </p>
+                      <p className="text-xs text-gray-500 font-medium">checkouts</p>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-blue-600">{item.checkoutCount}</p>
-                    <p className="text-xs text-gray-500">checkouts</p>
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-gray-500 text-center py-4">No data available</p>
+              <div className="text-center py-12">
+                <div className="inline-block p-4 bg-gray-100 rounded-full mb-3">
+                  <CubeIcon className="w-8 h-8 text-gray-400" />
+                </div>
+                <p className="text-gray-500 font-medium">No data available</p>
+                <p className="text-gray-400 text-sm mt-1">Popular items will appear here</p>
+              </div>
             )}
           </div>
-          <Link
-            to="/items"
-            className="block text-center text-blue-600 hover:text-blue-700 font-medium mt-4"
-          >
-            View All Items →
-          </Link>
         </div>
       </div>
 
       {/* Category Distribution */}
       {categoryDistribution && categoryDistribution.length > 0 && (
-        <div className="card">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Items by Category</h2>
+        <div className="card animate-fade-in">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Items by Category</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {categoryDistribution.map((category) => (
-              <div
-                key={category.name}
-                className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg text-center"
-              >
-                <p className="text-3xl font-bold text-blue-600">{category.value}</p>
-                <p className="text-sm text-gray-700 mt-1">{category.name}</p>
-              </div>
-            ))}
+            {categoryDistribution.map((category, index) => {
+              const colors = [
+                'from-blue-500 to-blue-600',
+                'from-purple-500 to-purple-600',
+                'from-pink-500 to-pink-600',
+                'from-green-500 to-green-600',
+                'from-yellow-500 to-yellow-600',
+                'from-red-500 to-red-600',
+                'from-indigo-500 to-indigo-600',
+                'from-teal-500 to-teal-600',
+              ];
+              const bgColors = [
+                'from-blue-50 to-blue-100',
+                'from-purple-50 to-purple-100',
+                'from-pink-50 to-pink-100',
+                'from-green-50 to-green-100',
+                'from-yellow-50 to-yellow-100',
+                'from-red-50 to-red-100',
+                'from-indigo-50 to-indigo-100',
+                'from-teal-50 to-teal-100',
+              ];
+              const textColor = colors[index % colors.length];
+              const bgColor = bgColors[index % bgColors.length];
+              
+              return (
+                <div
+                  key={category.name}
+                  className={`group relative overflow-hidden p-6 bg-gradient-to-br ${bgColor} rounded-2xl text-center shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100 hover:scale-105`}
+                >
+                  <div className="relative z-10">
+                    <p className={`text-4xl font-extrabold bg-gradient-to-r ${textColor} bg-clip-text text-transparent mb-2`}>
+                      {category.value}
+                    </p>
+                    <p className="text-sm text-gray-700 font-semibold">{category.name}</p>
+                  </div>
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-white rounded-full -mr-10 -mt-10 opacity-20"></div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
+      
+      {/* Quick Actions */}
+      <div className="card animate-fade-in">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Quick Actions</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Link
+            to="/checkout"
+            className="group p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200 hover:border-blue-400 hover:shadow-lg transition-all duration-300"
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl mb-3 group-hover:scale-110 transition-transform shadow-md">
+                <ArrowTrendingUpIcon className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="font-bold text-gray-900 mb-1">Checkout Items</h3>
+              <p className="text-sm text-gray-600">Check out items from inventory</p>
+            </div>
+          </Link>
+          
+          <Link
+            to="/items/new"
+            className="group p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200 hover:border-green-400 hover:shadow-lg transition-all duration-300"
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl mb-3 group-hover:scale-110 transition-transform shadow-md">
+                <CubeIcon className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="font-bold text-gray-900 mb-1">Add New Item</h3>
+              <p className="text-sm text-gray-600">Add a new item to inventory</p>
+            </div>
+          </Link>
+          
+          <Link
+            to="/transactions"
+            className="group p-6 bg-gradient-to-br from-purple-50 to-purple-50 rounded-xl border-2 border-purple-200 hover:border-purple-400 hover:shadow-lg transition-all duration-300"
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl mb-3 group-hover:scale-110 transition-transform shadow-md">
+                <ArrowsRightLeftIcon className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="font-bold text-gray-900 mb-1">View Transactions</h3>
+              <p className="text-sm text-gray-600">Manage all transactions</p>
+            </div>
+          </Link>
+          
+          <Link
+            to="/analytics"
+            className="group p-6 bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl border-2 border-yellow-200 hover:border-yellow-400 hover:shadow-lg transition-all duration-300"
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className="p-3 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl mb-3 group-hover:scale-110 transition-transform shadow-md">
+                <ChartBarIcon className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="font-bold text-gray-900 mb-1">View Analytics</h3>
+              <p className="text-sm text-gray-600">Detailed reports and insights</p>
+            </div>
+          </Link>
+        </div>
+      </div>
     </div>
   );
 };

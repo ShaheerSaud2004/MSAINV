@@ -28,6 +28,8 @@ const allowedOrigins = [
   process.env.CLIENT_URL,
   'http://localhost:3000',
   'http://localhost:3001',
+  'http://localhost:3021', // Custom development port
+  'http://localhost:3022',
   process.env.RAILWAY_STATIC_URL,
   process.env.RAILWAY_PUBLIC_DOMAIN
 ].filter(Boolean);
@@ -55,15 +57,17 @@ app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 app.use(morgan('dev')); // Logging
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  validate: { trustProxy: false } // Disable trust proxy validation (we're behind Railway proxy)
-});
-app.use('/api/', limiter);
+// Rate limiting - only apply in production
+if (process.env.NODE_ENV === 'production') {
+  const limiter = rateLimit({
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
+    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    validate: { trustProxy: false } // Disable trust proxy validation
+  });
+  app.use('/api/', limiter);
+}
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -73,6 +77,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/qr', require('./routes/qr'));
+app.use('/api/storage-visits', require('./routes/storageVisits'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -89,6 +94,9 @@ app.get('/api/health', (req, res) => {
 if (process.env.NODE_ENV === 'production') {
   // Serve static files from React build
   app.use(express.static(path.join(__dirname, '../client/build')));
+  
+  // Serve uploaded files
+  app.use('/storage/uploads', express.static(path.join(__dirname, 'storage/uploads')));
   
   // Handle React routing - return index.html for all non-API routes
   app.get('*', (req, res) => {

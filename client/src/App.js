@@ -22,6 +22,7 @@ import QRScanner from './pages/QRScanner';
 import CheckoutForm from './pages/CheckoutForm';
 import PrintQRCodes from './pages/PrintQRCodes';
 import AdminPanel from './pages/AdminPanel';
+import StorageVisitPhoto from './pages/StorageVisitPhoto';
 
 // Layout
 import Layout from './components/Layout';
@@ -213,6 +214,14 @@ function App() {
           element={
             <ProtectedRoute>
               <AdminPanel />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/storage-visit/:transactionId"
+          element={
+            <ProtectedRoute>
+              <StorageVisitPhoto />
             </ProtectedRoute>
           }
         />

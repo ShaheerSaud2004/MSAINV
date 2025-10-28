@@ -4,8 +4,9 @@ import { transactionsAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, CameraIcon, PhotoIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
 
 const TransactionDetail = () => {
   const { id } = useParams();
@@ -179,6 +180,106 @@ const TransactionDetail = () => {
         {transaction.isOverdue && (
           <div className="mt-6 p-4 bg-red-50 border-l-4 border-red-500 rounded">
             <p className="text-red-800 font-semibold">⚠️ This transaction is overdue!</p>
+          </div>
+        )}
+      </div>
+
+      {/* Storage Visit Photos Section */}
+      <div className="card">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Storage Visit Documentation</h2>
+            <p className="text-gray-600 mt-1">Photos taken during storage visits for safety tracking</p>
+          </div>
+          {(transaction.status === 'active' || transaction.status === 'approved' || transaction.status === 'pending') && (
+            <Link
+              to={`/storage-visit/${id}`}
+              className="btn-primary flex items-center gap-2"
+            >
+              <CameraIcon className="w-5 h-5" />
+              Upload Photos
+            </Link>
+          )}
+        </div>
+
+        {transaction.storagePhotoUploaded && transaction.storageVisits && transaction.storageVisits.length > 0 ? (
+          <div className="space-y-6">
+            {transaction.storageVisits.map((visit, index) => (
+              <div key={index} className="border border-gray-200 rounded-xl p-6 bg-gray-50">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className={`badge ${
+                        visit.visitType === 'pickup' ? 'badge-success' :
+                        visit.visitType === 'return' ? 'badge-info' :
+                        visit.visitType === 'inspection' ? 'badge-warning' :
+                        'badge-gray'
+                      }`}>
+                        {visit.visitType}
+                      </span>
+                      <span className="text-sm text-gray-600">
+                        {format(new Date(visit.visitDate), 'MMM dd, yyyy • h:mm a')}
+                      </span>
+                      {visit.verifiedBy && (
+                        <span className="flex items-center gap-1 text-sm text-green-600">
+                          <CheckCircleIcon className="w-4 h-4" />
+                          Verified
+                        </span>
+                      )}
+                    </div>
+                    {visit.location && (
+                      <p className="text-sm text-gray-600">📍 {visit.location}</p>
+                    )}
+                  </div>
+                  <div className="text-right text-sm text-gray-600">
+                    <p>By: {visit.userId?.name || 'Unknown'}</p>
+                  </div>
+                </div>
+
+                {/* Photos Grid */}
+                {visit.photos && visit.photos.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
+                    {visit.photos.map((photo, photoIndex) => (
+                      <div key={photoIndex} className="relative group">
+                        <img
+                          src={`${process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3022'}${photo.url}`}
+                          alt={photo.caption || `Visit photo ${photoIndex + 1}`}
+                          className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 group-hover:border-blue-500 transition-all cursor-pointer"
+                          onClick={() => window.open(`${process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3022'}${photo.url}`, '_blank')}
+                        />
+                        {photo.caption && (
+                          <p className="text-xs text-gray-600 mt-1 truncate">{photo.caption}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {visit.notes && (
+                  <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200">
+                    <p className="text-sm font-medium text-gray-700">Notes:</p>
+                    <p className="text-sm text-gray-600 mt-1">{visit.notes}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+            <PhotoIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 font-medium mb-2">No storage visit photos yet</p>
+            <p className="text-sm text-gray-500 mb-4">
+              Upload photos when visiting storage for safety and tracking purposes
+            </p>
+            {(transaction.status === 'active' || transaction.status === 'approved' || transaction.status === 'pending') && (
+              <Link
+                to={`/storage-visit/${id}`}
+                className="btn-primary inline-flex items-center gap-2"
+              >
+                <CameraIcon className="w-5 h-5" />
+                Upload Photos Now
+              </Link>
+            )}
           </div>
         )}
       </div>
