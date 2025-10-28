@@ -74,6 +74,12 @@ const itemSchema = new mongoose.Schema({
     enum: ['active', 'inactive', 'maintenance', 'retired', 'lost'],
     default: 'active'
   },
+  team: {
+    type: String,
+    required: [true, 'Team is required for item'],
+    trim: true,
+    index: true
+  },
   cost: {
     purchasePrice: { type: Number, default: 0 },
     currentValue: { type: Number, default: 0 },

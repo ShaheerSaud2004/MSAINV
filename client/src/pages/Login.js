@@ -39,12 +39,12 @@ const Login = () => {
     }
   };
 
-  const quickLogin = async (email, password, role) => {
+  const quickLogin = async (email, password, team) => {
     setLoading(true);
     try {
       const result = await login(email, password);
       if (result.success) {
-        toast.success(`Quick login as ${role} successful!`);
+        toast.success(`Welcome ${team} Team! 🎉`);
         navigate('/dashboard');
       } else {
         toast.error(result.message || 'Quick login failed');
@@ -54,6 +54,29 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const teams = [
+    { name: 'IAW', email: 'iaw@msa.com', password: 'iaw123', color: 'blue', icon: '🌟' },
+    { name: 'Ladders', email: 'ladders@msa.com', password: 'ladders123', color: 'purple', icon: '🪜' },
+    { name: 'R2R', email: 'r2r@msa.com', password: 'r2r123', color: 'green', icon: '🎯' },
+    { name: 'Brothers Social', email: 'brothers@msa.com', password: 'brothers123', color: 'amber', icon: '👥' },
+    { name: 'Sister Social', email: 'sisters@msa.com', password: 'sisters123', color: 'pink', icon: '👭' },
+    { name: 'Hope', email: 'hope@msa.com', password: 'hope123', color: 'teal', icon: '💚' },
+    { name: 'Submissions', email: 'submissions@msa.com', password: 'submissions123', color: 'red', icon: '📝' }
+  ];
+
+  const getTeamColorClasses = (color) => {
+    const colors = {
+      blue: 'border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100',
+      purple: 'border-purple-300 text-purple-700 bg-purple-50 hover:bg-purple-100',
+      green: 'border-green-300 text-green-700 bg-green-50 hover:bg-green-100',
+      amber: 'border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100',
+      pink: 'border-pink-300 text-pink-700 bg-pink-50 hover:bg-pink-100',
+      teal: 'border-teal-300 text-teal-700 bg-teal-50 hover:bg-teal-100',
+      red: 'border-red-300 text-red-700 bg-red-50 hover:bg-red-100'
+    };
+    return colors[color] || colors.blue;
   };
 
   return (
@@ -126,55 +149,37 @@ const Login = () => {
           </div>
         </form>
 
-        {/* Quick Login Options */}
+        {/* Team Quick Login Options */}
         <div className="mt-6">
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">⚡ Quick Login (Demo)</span>
+              <span className="px-3 bg-white text-gray-600 font-semibold">⚡ Quick Team Login</span>
             </div>
           </div>
 
-          <div className="mt-4 space-y-2">
-            <button
-              onClick={() => quickLogin('admin@msa.com', 'admin123', 'Admin')}
-              disabled={loading}
-              className="w-full flex items-center justify-center px-4 py-2 border border-blue-300 rounded-lg shadow-sm text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-              Login as Admin (Full Access)
-            </button>
-
-            <button
-              onClick={() => quickLogin('manager@msa.com', 'manager123', 'Manager')}
-              disabled={loading}
-              className="w-full flex items-center justify-center px-4 py-2 border border-green-300 rounded-lg shadow-sm text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              Login as Manager (Most Access)
-            </button>
-
-            <button
-              onClick={() => quickLogin('user@msa.com', 'user123', 'User')}
-              disabled={loading}
-              className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              Login as User (View & Checkout)
-            </button>
+          <div className="mt-4 grid grid-cols-1 gap-2">
+            {teams.map((team) => (
+              <button
+                key={team.name}
+                onClick={() => quickLogin(team.email, team.password, team.name)}
+                disabled={loading}
+                className={`w-full flex items-center justify-center px-4 py-3 border rounded-xl shadow-sm text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 hover:shadow-md ${getTeamColorClasses(team.color)}`}
+              >
+                <span className="text-2xl mr-3">{team.icon}</span>
+                <span className="flex-1 text-left">{team.name}</span>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </button>
+            ))}
           </div>
 
-          <div className="mt-3 text-center">
+          <div className="mt-4 text-center">
             <p className="text-xs text-gray-500">
-              💡 Quick login for testing. Use the buttons above to instantly sign in with demo accounts.
+              🎯 Each team has separate storage and inventory
             </p>
           </div>
         </div>

@@ -1,0 +1,71 @@
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║            📸 PHOTO UPLOAD - QUICK ACCESS GUIDE 📸          ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+🎯 WHERE IS THE UPLOAD BUTTON?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Step 1: Go to TRANSACTIONS
+  Dashboard → Click "Transactions" in left sidebar
+
+Step 2: Click ANY TRANSACTION
+  Click on any transaction row to view details
+
+Step 3: Scroll to "Storage Visit Documentation"
+  On transaction detail page, scroll down
+
+Step 4: Click "UPLOAD PHOTOS" Button
+  Big blue button with camera icon 📸
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📍 DIRECT URL:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+http://localhost:3021/storage-visit/:transactionId
+
+Replace :transactionId with actual ID from transaction URL
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 QUICK TEST:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Login: user@test.com / password123
+2. Go to: http://localhost:3021/transactions
+3. Click any transaction
+4. Scroll down
+5. Click "Upload Photos" button
+6. Select photos (up to 5)
+7. Submit!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📸 WHAT YOU CAN UPLOAD:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ Up to 5 photos per visit
+✓ JPG, PNG, GIF, WEBP formats
+✓ Max 10MB per photo
+✓ Add captions to each photo
+✓ Specify visit type (Pickup/Return/Inspection/Maintenance)
+✓ Add location and notes
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔎 CAN'T FIND THE BUTTON?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Check:
+  ✓ You're on a TRANSACTION DETAIL page (not transactions list)
+  ✓ Transaction status is pending/active/approved
+  ✓ You're logged in
+  ✓ Both frontend & backend are running
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The upload button is in the "Storage Visit Documentation" 
+section on every transaction detail page!
+
