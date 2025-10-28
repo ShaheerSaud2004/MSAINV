@@ -25,11 +25,6 @@ router.get('/', protect, async (req, res) => {
     const storageService = getStorageService();
     const query = {};
 
-    // Filter by team - each team sees only their transactions
-    if (req.user.team) {
-      query.team = req.user.team;
-    }
-
     if (status) query.status = status;
     if (type) query.type = type;
     if (userId) query.user = userId;
@@ -198,7 +193,6 @@ router.post('/checkout', protect, checkPermission('canCheckout'), [
       status: 'pending', // Always pending until approved
       item: item,
       user: userId,
-      team: req.user.team, // Automatically set team from logged-in user
       quantity: quantity,
       checkoutDate: new Date(),
       expectedReturnDate: new Date(expectedReturnDate),

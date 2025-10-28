@@ -141,12 +141,6 @@ const transactionSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  team: {
-    type: String,
-    required: [true, 'Team is required for transaction'],
-    trim: true,
-    index: true
-  },
   quantity: {
     type: Number,
     required: true,

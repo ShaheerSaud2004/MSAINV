@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { analyticsAPI } from '../services/api';
 import { toast } from 'react-toastify';
-import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import {
   CubeIcon,
@@ -17,7 +16,6 @@ import {
 import { format } from 'date-fns';
 
 const Dashboard = () => {
-  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dashboardData, setDashboardData] = useState(null);
@@ -115,18 +113,11 @@ const Dashboard = () => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 animate-fade-in">
         <div className="flex-1">
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-4xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              Dashboard
-            </h1>
-            {user?.team && (
-              <span className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold text-sm shadow-lg animate-scale-in">
-                {user.team}
-              </span>
-            )}
-          </div>
+          <h1 className="text-4xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            Dashboard
+          </h1>
           <div className="flex flex-wrap items-center gap-2 mt-2">
-            <p className="text-gray-600 text-lg">Welcome back! Here's what's happening with your {user?.team || 'team'}'s inventory.</p>
+            <p className="text-gray-600 text-lg">Welcome back! Here's what's happening with your inventory.</p>
             <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
               Last updated: {format(lastUpdated, 'h:mm a')}
             </span>

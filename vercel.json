@@ -1,17 +1,16 @@
 {
   "version": 2,
-  "name": "msa-inventory-full-stack",
   "builds": [
+    {
+      "src": "server/server.js",
+      "use": "@vercel/node"
+    },
     {
       "src": "client/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "build"
+        "distDir": "client/build"
       }
-    },
-    {
-      "src": "server/server.js",
-      "use": "@vercel/node"
     }
   ],
   "routes": [
@@ -20,26 +19,11 @@
       "dest": "server/server.js"
     },
     {
-      "src": "/static/(.*)",
-      "dest": "client/build/static/$1"
-    },
-    {
-      "src": "/favicon.ico",
-      "dest": "client/build/favicon.ico"
-    },
-    {
-      "src": "/manifest.json",
-      "dest": "client/build/manifest.json"
-    },
-    {
       "src": "/(.*)",
-      "dest": "client/build/index.html"
+      "dest": "client/build/$1"
     }
   ],
   "env": {
-    "BLOB_READ_WRITE_TOKEN": "vercel_blob_rw_f1Bfh0yfVP1k1HVA_qX0GK3Wl9aMgtS4IkrbtrE2zV0Eae9",
-    "STORAGE_MODE": "blob",
-    "JWT_SECRET": "msa-inventory-jwt-secret-change-in-production",
     "NODE_ENV": "production"
   }
 }

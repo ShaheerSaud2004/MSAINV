@@ -24,11 +24,6 @@ router.get('/', protect, async (req, res) => {
     const storageService = getStorageService();
     const query = {};
 
-    // Filter by team - each team sees only their items
-    if (req.user.team) {
-      query.team = req.user.team;
-    }
-
     if (category) query.category = category;
     if (status) query.status = status;
     if (isCheckoutable) query.isCheckoutable = isCheckoutable === 'true';
@@ -122,7 +117,6 @@ router.post('/', protect, checkPermission('canManageItems'), [
     const itemData = {
       ...req.body,
       availableQuantity: req.body.totalQuantity,
-      team: req.user.team, // Automatically set team from logged-in user
       createdBy: req.user._id || req.user.id,
       lastModifiedBy: req.user._id || req.user.id
     };
