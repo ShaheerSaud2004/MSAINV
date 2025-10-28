@@ -8,7 +8,8 @@
     "dev": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "create-demo-users": "node scripts/createDemoUsers.js",
-    "setup": "node scripts/createDemoUsers.js"
+    "setup": "node scripts/createDemoUsers.js",
+    "reset-team-passwords": "node scripts/resetTeamPasswords.js"
   },
   "keywords": [
     "inventory",
