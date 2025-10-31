@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { analyticsAPI } from '../services/api';
 import { toast } from 'react-toastify';
@@ -16,6 +17,7 @@ import {
 import { format } from 'date-fns';
 
 const Dashboard = () => {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dashboardData, setDashboardData] = useState(null);
@@ -81,6 +83,7 @@ const Dashboard = () => {
   }
 
   const { summary, recentActivity, topItems, categoryDistribution } = dashboardData || {};
+  const isBaseUser = user && user.role === 'user';
 
   const StatCard = ({ title, value, icon: Icon, color, link, gradient }) => (
     <Link
@@ -145,40 +148,61 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total Items"
-          value={summary?.totalItems || 0}
-          icon={CubeIcon}
-          color="bg-gradient-to-br from-blue-500 to-blue-600"
-          gradient="bg-gradient-to-br from-blue-500 to-blue-600"
-          link="/items"
-        />
-        <StatCard
-          title="Active Transactions"
-          value={summary?.activeCheckouts || 0}
-          icon={ArrowTrendingUpIcon}
-          color="bg-gradient-to-br from-green-500 to-emerald-600"
-          gradient="bg-gradient-to-br from-green-500 to-emerald-600"
-          link="/transactions?status=active"
-        />
-        <StatCard
-          title="Total Users"
-          value={summary?.totalUsers || 0}
-          icon={CubeIcon}
-          color="bg-gradient-to-br from-purple-500 to-purple-600"
-          gradient="bg-gradient-to-br from-purple-500 to-purple-600"
-          link="/users"
-        />
-        <StatCard
-          title="Overdue Items"
-          value={summary?.overdueCheckouts || 0}
-          icon={ExclamationTriangleIcon}
-          color="bg-gradient-to-br from-red-500 to-red-600"
-          gradient="bg-gradient-to-br from-red-500 to-red-600"
-          link="/transactions?status=overdue"
-        />
-      </div>
+      {isBaseUser ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <StatCard
+            title="My Active Checkouts"
+            value={summary?.activeCheckouts || 0}
+            icon={ArrowTrendingUpIcon}
+            color="bg-gradient-to-br from-green-500 to-emerald-600"
+            gradient="bg-gradient-to-br from-green-500 to-emerald-600"
+            link="/transactions?status=active"
+          />
+          <StatCard
+            title="My Overdue"
+            value={summary?.overdueCheckouts || 0}
+            icon={ExclamationTriangleIcon}
+            color="bg-gradient-to-br from-red-500 to-red-600"
+            gradient="bg-gradient-to-br from-red-500 to-red-600"
+            link="/transactions?status=overdue"
+          />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatCard
+            title="Total Items"
+            value={summary?.totalItems || 0}
+            icon={CubeIcon}
+            color="bg-gradient-to-br from-blue-500 to-blue-600"
+            gradient="bg-gradient-to-br from-blue-500 to-blue-600"
+            link="/items"
+          />
+          <StatCard
+            title="Active Transactions"
+            value={summary?.activeCheckouts || 0}
+            icon={ArrowTrendingUpIcon}
+            color="bg-gradient-to-br from-green-500 to-emerald-600"
+            gradient="bg-gradient-to-br from-green-500 to-emerald-600"
+            link="/transactions?status=active"
+          />
+          <StatCard
+            title="Total Users"
+            value={summary?.totalUsers || 0}
+            icon={CubeIcon}
+            color="bg-gradient-to-br from-purple-500 to-purple-600"
+            gradient="bg-gradient-to-br from-purple-500 to-purple-600"
+            link="/users"
+          />
+          <StatCard
+            title="Overdue Items"
+            value={summary?.overdueCheckouts || 0}
+            icon={ExclamationTriangleIcon}
+            color="bg-gradient-to-br from-red-500 to-red-600"
+            gradient="bg-gradient-to-br from-red-500 to-red-600"
+            link="/transactions?status=overdue"
+          />
+        </div>
+      )}
 
       {/* Alerts */}
       {summary?.overdueCheckouts > 0 && (
@@ -204,7 +228,7 @@ const Dashboard = () => {
         </div>
       )}
 
-      {summary?.pendingApprovals > 0 && (
+      {!isBaseUser && summary?.pendingApprovals > 0 && (
         <div className="relative overflow-hidden bg-gradient-to-r from-yellow-50 via-yellow-50 to-amber-50 border-l-4 border-yellow-500 p-6 rounded-xl shadow-lg animate-slide-in">
           <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-200 rounded-full -mr-16 -mt-16 opacity-20"></div>
           <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -296,6 +320,7 @@ const Dashboard = () => {
         </div>
 
         {/* Top Items */}
+        {!isBaseUser && (
         <div className="card animate-fade-in">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900">Most Checked Out Items</h2>
@@ -356,10 +381,11 @@ const Dashboard = () => {
             )}
           </div>
         </div>
+        )}
       </div>
 
       {/* Category Distribution */}
-      {categoryDistribution && categoryDistribution.length > 0 && (
+      {!isBaseUser && categoryDistribution && categoryDistribution.length > 0 && (
         <div className="card animate-fade-in">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Items by Category</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -423,18 +449,20 @@ const Dashboard = () => {
             </div>
           </Link>
           
-          <Link
-            to="/items/new"
-            className="group p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200 hover:border-green-400 hover:shadow-lg transition-all duration-300"
-          >
-            <div className="flex flex-col items-center text-center">
-              <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl mb-3 group-hover:scale-110 transition-transform shadow-md">
-                <CubeIcon className="w-8 h-8 text-white" />
+          {!isBaseUser && (
+            <Link
+              to="/items/add"
+              className="group p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200 hover:border-green-400 hover:shadow-lg transition-all duration-300"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl mb-3 group-hover:scale-110 transition-transform shadow-md">
+                  <CubeIcon className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="font-bold text-gray-900 mb-1">Add New Item</h3>
+                <p className="text-sm text-gray-600">Add a new item to inventory</p>
               </div>
-              <h3 className="font-bold text-gray-900 mb-1">Add New Item</h3>
-              <p className="text-sm text-gray-600">Add a new item to inventory</p>
-            </div>
-          </Link>
+            </Link>
+          )}
           
           <Link
             to="/transactions"
@@ -449,18 +477,20 @@ const Dashboard = () => {
             </div>
           </Link>
           
-          <Link
-            to="/analytics"
-            className="group p-6 bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl border-2 border-yellow-200 hover:border-yellow-400 hover:shadow-lg transition-all duration-300"
-          >
-            <div className="flex flex-col items-center text-center">
-              <div className="p-3 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl mb-3 group-hover:scale-110 transition-transform shadow-md">
-                <ChartBarIcon className="w-8 h-8 text-white" />
+          {!isBaseUser && (
+            <Link
+              to="/analytics"
+              className="group p-6 bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl border-2 border-yellow-200 hover:border-yellow-400 hover:shadow-lg transition-all duration-300"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="p-3 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl mb-3 group-hover:scale-110 transition-transform shadow-md">
+                  <ChartBarIcon className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="font-bold text-gray-900 mb-1">View Analytics</h3>
+                <p className="text-sm text-gray-600">Detailed reports and insights</p>
               </div>
-              <h3 className="font-bold text-gray-900 mb-1">View Analytics</h3>
-              <p className="text-sm text-gray-600">Detailed reports and insights</p>
-            </div>
-          </Link>
+            </Link>
+          )}
         </div>
       </div>
     </div>

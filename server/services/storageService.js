@@ -10,7 +10,8 @@ class JSONStorageService {
       users: 'users.json',
       items: 'items.json',
       transactions: 'transactions.json',
-      notifications: 'notifications.json'
+      notifications: 'notifications.json',
+      guestRequests: 'guestRequests.json'
     };
     this.init();
   }
@@ -169,6 +170,9 @@ class JSONStorageService {
     const items = await this.readCollection('items');
     let filtered = items;
     
+    if (query.team) {
+      filtered = filtered.filter(i => (i.team || '') === query.team);
+    }
     if (query.category) {
       filtered = filtered.filter(i => i.category === query.category);
     }
@@ -231,6 +235,9 @@ class JSONStorageService {
     const transactions = await this.readCollection('transactions');
     let filtered = transactions;
     
+    if (query.team) {
+      filtered = filtered.filter(t => (t.team || '') === query.team);
+    }
     if (query.user) {
       filtered = filtered.filter(t => t.user === query.user);
     }
@@ -277,6 +284,45 @@ class JSONStorageService {
       };
       await this.writeCollection('notifications', notifications);
       return notifications[index];
+    }
+    return null;
+  }
+
+  // Guest Request methods
+  async createGuestRequest(requestData) {
+    const guestRequests = await this.readCollection('guestRequests');
+    const newRequest = {
+      _id: this.generateId(),
+      status: 'pending',
+      ...requestData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    guestRequests.push(newRequest);
+    await this.writeCollection('guestRequests', guestRequests);
+    return newRequest;
+  }
+
+  async findGuestRequestsByTeam(team) {
+    const guestRequests = await this.readCollection('guestRequests');
+    // If team is empty string, return all requests (for admin)
+    if (team === '') {
+      return guestRequests;
+    }
+    return guestRequests.filter(r => (r.team || '') === team);
+  }
+
+  async updateGuestRequest(id, updates) {
+    const guestRequests = await this.readCollection('guestRequests');
+    const index = guestRequests.findIndex(r => r._id === id || r.id === id);
+    if (index !== -1) {
+      guestRequests[index] = {
+        ...guestRequests[index],
+        ...updates,
+        updatedAt: new Date().toISOString()
+      };
+      await this.writeCollection('guestRequests', guestRequests);
+      return guestRequests[index];
     }
     return null;
   }
@@ -383,6 +429,32 @@ class MongoDBStorageService {
   async updateNotification(id, updates) {
     const Notification = require('../models/Notification');
     return await Notification.findByIdAndUpdate(id, updates, { new: true });
+  }
+
+  // Guest Request methods (Mongo placeholder if needed later)
+  async createGuestRequest(requestData) {
+    // For Mongo mode, persist to a simple JSON collection for now to keep parity
+    const { JSONStorageService } = require('./storageService');
+    if (!global.jsonCompatService) {
+      global.jsonCompatService = new JSONStorageService();
+    }
+    return await global.jsonCompatService.createGuestRequest(requestData);
+  }
+
+  async findGuestRequestsByTeam(team) {
+    const { JSONStorageService } = require('./storageService');
+    if (!global.jsonCompatService) {
+      global.jsonCompatService = new JSONStorageService();
+    }
+    return await global.jsonCompatService.findGuestRequestsByTeam(team);
+  }
+
+  async updateGuestRequest(id, updates) {
+    const { JSONStorageService } = require('./storageService');
+    if (!global.jsonCompatService) {
+      global.jsonCompatService = new JSONStorageService();
+    }
+    return await global.jsonCompatService.updateGuestRequest(id, updates);
   }
 }
 

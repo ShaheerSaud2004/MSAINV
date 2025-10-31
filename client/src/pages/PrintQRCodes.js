@@ -115,7 +115,7 @@ const PrintQRCodes = () => {
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         @media print {
           .no-print {
             display: none !important;

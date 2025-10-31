@@ -49,7 +49,7 @@ const Layout = ({ children }) => {
         },
         { 
           name: 'Add New Item', 
-          href: '/items/new', 
+          href: '/items/add', 
           icon: PlusCircleIcon, 
           show: user?.permissions?.canManageItems 
         },

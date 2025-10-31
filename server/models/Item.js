@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const itemSchema = new mongoose.Schema({
+  team: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   name: {
     type: String,
     required: [true, 'Item name is required'],
@@ -155,6 +160,7 @@ itemSchema.index({ qrCode: 1 });
 itemSchema.index({ category: 1 });
 itemSchema.index({ status: 1 });
 itemSchema.index({ isCheckoutable: 1 });
+itemSchema.index({ team: 1 });
 
 // Virtual for checked out quantity
 itemSchema.virtual('checkedOutQuantity').get(function() {

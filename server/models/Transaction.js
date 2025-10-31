@@ -114,6 +114,11 @@ const storageVisitSchema = new mongoose.Schema({
 });
 
 const transactionSchema = new mongoose.Schema({
+  team: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   transactionNumber: {
     type: String,
     unique: true,
@@ -277,6 +282,7 @@ transactionSchema.index({ status: 1, expectedReturnDate: 1 });
 transactionSchema.index({ type: 1 });
 transactionSchema.index({ checkoutDate: 1 });
 transactionSchema.index({ expectedReturnDate: 1 });
+transactionSchema.index({ team: 1 });
 
 // Generate transaction number before saving
 transactionSchema.pre('save', async function(next) {

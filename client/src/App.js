@@ -23,6 +23,7 @@ import CheckoutForm from './pages/CheckoutForm';
 import PrintQRCodes from './pages/PrintQRCodes';
 import AdminPanel from './pages/AdminPanel';
 import StorageVisitPhoto from './pages/StorageVisitPhoto';
+import GuestRequest from './pages/GuestRequest';
 
 // Layout
 import Layout from './components/Layout';
@@ -87,6 +88,7 @@ function App() {
             </PublicRoute>
           }
         />
+        <Route path="/guest" element={<GuestRequest />} />
 
         {/* Protected Routes */}
         <Route

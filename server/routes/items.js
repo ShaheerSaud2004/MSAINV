@@ -116,6 +116,7 @@ router.post('/', protect, checkPermission('canManageItems'), [
 
     const itemData = {
       ...req.body,
+      team: '', // Items are shared globally across all teams
       availableQuantity: req.body.totalQuantity,
       createdBy: req.user._id || req.user.id,
       lastModifiedBy: req.user._id || req.user.id

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { transactionsAPI, authAPI } from '../services/api';
+import { transactionsAPI, authAPI, guestRequestsAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { 
@@ -23,6 +23,7 @@ const AdminPanel = () => {
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
   const [loginActivity, setLoginActivity] = useState([]);
+  const [guestRequests, setGuestRequests] = useState([]);
   const [stats, setStats] = useState({
     pendingApprovals: 0,
     activeCheckouts: 0,
@@ -76,6 +77,14 @@ const AdminPanel = () => {
       if (loginResponse.data.success) {
         setLoginActivity(loginResponse.data.data);
       }
+
+      // Fetch guest requests
+      try {
+        const gr = await guestRequestsAPI.list();
+        if (gr.data.success) setGuestRequests(gr.data.data);
+      } catch (e) {
+        // ignore if endpoint unavailable
+      }
     } catch (error) {
       console.error('Error fetching admin data:', error);
       toast.error('Failed to load admin data');
@@ -116,6 +125,28 @@ const AdminPanel = () => {
       }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to reject transaction');
+    }
+  };
+
+  const handleApproveGuest = async (id) => {
+    try {
+      await guestRequestsAPI.approve(id);
+      toast.success('Guest request approved');
+      fetchAdminData();
+    } catch (e) {
+      toast.error('Failed to approve guest request');
+    }
+  };
+
+  const handleRejectGuest = async (id) => {
+    const reason = prompt('Reason for rejection:');
+    if (!reason) return;
+    try {
+      await guestRequestsAPI.reject(id, { reason });
+      toast.success('Guest request rejected');
+      fetchAdminData();
+    } catch (e) {
+      toast.error('Failed to reject guest request');
     }
   };
 
@@ -224,6 +255,17 @@ const AdminPanel = () => {
             >
               <UserGroupIcon className="w-5 h-5 inline mr-2" />
               Login Activity
+            </button>
+            <button
+              onClick={() => setActiveTab('guest')}
+              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'guest'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <CubeIcon className="w-5 h-5 inline mr-2" />
+              Guest Requests
             </button>
           </nav>
         </div>
@@ -440,6 +482,58 @@ const AdminPanel = () => {
                     </tbody>
                   </table>
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* Guest Requests Tab */}
+          {activeTab === 'guest' && (
+            <div className="space-y-3">
+              {guestRequests.length === 0 ? (
+                <div className="text-center py-12">
+                  <CubeIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Guest Requests</h3>
+                  <p className="text-gray-600">Guest requests will appear here.</p>
+                </div>
+              ) : (
+                guestRequests.map((r) => (
+                  <div key={r._id || r.id} className="border rounded-lg p-4 bg-white">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`badge ${r.status === 'pending' ? 'badge-warning' : r.status === 'approved' ? 'badge-success' : 'badge-danger'}`}>{r.status}</span>
+                          <span className="badge badge-secondary">{r.team}</span>
+                        </div>
+                        <div className="font-medium text-gray-900">{r.itemName || 'Requested Item'}</div>
+                        <div className="text-sm text-gray-600 mt-1">From: {r.requester?.name} ({r.requester?.email})</div>
+                        <div className="text-sm text-gray-600 mt-1">Purpose: {r.purpose}</div>
+                        {r.notes && <div className="text-sm text-gray-500 mt-1">Notes: {r.notes}</div>}
+                        {(r.photos?.itemPhoto || r.photos?.departurePhoto) && (
+                          <div className="mt-3 grid grid-cols-2 gap-3">
+                            {r.photos?.itemPhoto && (
+                              <div>
+                                <div className="text-xs text-gray-500 mb-1">Item photo</div>
+                                <img src={r.photos.itemPhoto} alt="Item" className="h-28 w-auto rounded border" />
+                              </div>
+                            )}
+                            {r.photos?.departurePhoto && (
+                              <div>
+                                <div className="text-xs text-gray-500 mb-1">Departure photo</div>
+                                <img src={r.photos.departurePhoto} alt="Departure" className="h-28 w-auto rounded border" />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {r.status === 'pending' && (
+                        <div className="flex flex-col gap-2 ml-4">
+                          <button onClick={() => handleApproveGuest(r._id || r.id)} className="btn-success">Approve</button>
+                          <button onClick={() => handleRejectGuest(r._id || r.id)} className="btn-danger">Reject</button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           )}

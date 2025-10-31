@@ -10,9 +10,9 @@ router.get('/dashboard', protect, async (req, res) => {
   try {
     const storageService = getStorageService();
 
-    // Get all data
+    // Global inventory and transactions; per-user filtering for base users below
     const items = await storageService.findAllItems({});
-    const transactions = await storageService.findAllTransactions({});
+    let transactions = await storageService.findAllTransactions({});
     const users = await storageService.findAllUsers({});
 
     // Calculate metrics
@@ -20,9 +20,19 @@ router.get('/dashboard', protect, async (req, res) => {
     const activeItems = items.filter(i => i.status === 'active').length;
     const totalValue = items.reduce((sum, item) => sum + (item.cost?.currentValue || 0), 0);
 
-    const activeCheckouts = transactions.filter(t => t.status === 'active').length;
-    const overdueCheckouts = transactions.filter(t => t.status === 'overdue').length;
-    const pendingApprovals = transactions.filter(t => t.status === 'pending').length;
+    // If base user, only count their own transactions for summary
+    const currentUserId = req.user._id || req.user.id;
+    let filteredForSummary = transactions;
+    if (req.user.role === 'user') {
+      filteredForSummary = transactions.filter(t => {
+        const tUserId = t.user._id || t.user.id || t.user;
+        return String(tUserId) === String(currentUserId);
+      });
+    }
+
+    const activeCheckouts = filteredForSummary.filter(t => t.status === 'active').length;
+    const overdueCheckouts = filteredForSummary.filter(t => t.status === 'overdue').length;
+    const pendingApprovals = filteredForSummary.filter(t => t.status === 'pending').length;
 
     const totalUsers = users.length;
     const activeUsers = users.filter(u => u.status === 'active').length;
@@ -31,6 +41,14 @@ router.get('/dashboard', protect, async (req, res) => {
     let recentTransactions = transactions
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(0, 10);
+
+    // For base users, only show their own recent activity
+    if (req.user.role === 'user') {
+      recentTransactions = transactions
+        .filter(t => String((t.user._id || t.user.id || t.user)) === String(currentUserId))
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 10);
+    }
 
     // Populate recent transactions for JSON storage
     let populatedRecentTransactions = recentTransactions;
@@ -56,7 +74,7 @@ router.get('/dashboard', protect, async (req, res) => {
       });
     }
 
-    // Top items (most checked out)
+    // Top items (most checked out) - team scoped above
     const itemCheckoutCounts = {};
     transactions.forEach(t => {
       const itemId = t.item._id || t.item.id || t.item;

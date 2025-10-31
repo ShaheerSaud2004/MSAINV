@@ -107,5 +107,13 @@ export const qrAPI = {
   getItemByQRCode: (qrCode) => api.get(`/qr/item/${qrCode}`),
 };
 
+// Guest Requests API (public submit, auth for review)
+export const guestRequestsAPI = {
+  submit: (data) => api.post('/guest-requests', data, { headers: { Authorization: undefined } }),
+  list: () => api.get('/guest-requests'),
+  approve: (id) => api.post(`/guest-requests/${id}/approve`),
+  reject: (id, data) => api.post(`/guest-requests/${id}/reject`, data),
+};
+
 export default api;
 

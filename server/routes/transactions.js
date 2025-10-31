@@ -169,10 +169,17 @@ router.post('/checkout', protect, checkPermission('canCheckout'), [
     }
 
     // Check availability
-    if (itemDoc.availableQuantity < quantity) {
+    // Consider reservations: sum of pending transactions for this item reduces availability
+    const allTx = await storageService.findAllTransactions({ item });
+    const reservedPending = allTx
+      .filter(t => t.status === 'pending')
+      .reduce((sum, t) => sum + (t.quantity || 0), 0);
+    const effectiveAvailable = Math.max(0, (itemDoc.availableQuantity || 0) - reservedPending);
+
+    if (effectiveAvailable < quantity) {
       return res.status(400).json({
         success: false,
-        message: `Only ${itemDoc.availableQuantity} units available`
+        message: `Only ${effectiveAvailable} unit(s) available after pending reservations`
       });
     }
 

@@ -178,6 +178,83 @@ const Login = () => {
             </p>
           </div>
         </div>
+
+        {/* Quick Team Login */}
+        <div className="mt-8">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">🏷️ Quick Team Login</span>
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button
+              onClick={() => quickLogin('iaw@msa.com', 'iaw123', 'IAW Team')}
+              disabled={loading}
+              className="w-full px-4 py-2 border border-indigo-300 rounded-lg shadow-sm text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              🌟 IAW Team
+            </button>
+            <button
+              onClick={() => quickLogin('hope@msa.com', 'hope123', 'Hope Team')}
+              disabled={loading}
+              className="w-full px-4 py-2 border border-emerald-300 rounded-lg shadow-sm text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              💚 Hope Team
+            </button>
+            <button
+              onClick={() => quickLogin('submissions@msa.com', 'submissions123', 'Submissions Team')}
+              disabled={loading}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              📝 Submissions Team
+            </button>
+            <button
+              onClick={() => quickLogin('ept@msa.com', 'ept123', 'EPT Team')}
+              disabled={loading}
+              className="w-full px-4 py-2 border border-purple-300 rounded-lg shadow-sm text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              ⚙️ EPT Team
+            </button>
+            <button
+              onClick={() => quickLogin('ladders@msa.com', 'ladders123', 'Ladders Team')}
+              disabled={loading}
+              className="w-full px-4 py-2 border border-yellow-300 rounded-lg shadow-sm text-sm font-medium text-yellow-700 bg-yellow-50 hover:bg-yellow-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              🪜 Ladders Team
+            </button>
+            <button
+              onClick={() => quickLogin('r2r@msa.com', 'r2r123', 'R2R Team')}
+              disabled={loading}
+              className="w-full px-4 py-2 border border-pink-300 rounded-lg shadow-sm text-sm font-medium text-pink-700 bg-pink-50 hover:bg-pink-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              🎯 R2R Team
+            </button>
+            <button
+              onClick={() => quickLogin('brothers@msa.com', 'brothers123', 'Brothers Social')}
+              disabled={loading}
+              className="w-full px-4 py-2 border border-blue-300 rounded-lg shadow-sm text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              👥 Brothers Social
+            </button>
+            <button
+              onClick={() => quickLogin('sisters@msa.com', 'sisters123', 'Sisters Social')}
+              disabled={loading}
+              className="w-full px-4 py-2 border border-rose-300 rounded-lg shadow-sm text-sm font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              👭 Sisters Social
+            </button>
+          </div>
+
+          <div className="mt-3 text-center">
+            <p className="text-xs text-gray-500">
+              Each team logs into its own workspace. Data is isolated per team.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

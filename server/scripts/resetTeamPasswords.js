@@ -4,12 +4,13 @@ const bcrypt = require('bcryptjs');
 
 const TEAM_ACCOUNTS = [
   { email: 'iaw@msa.com', password: 'iaw123', team: 'IAW' },
-  { email: 'ladders@msa.com', password: 'ladders123', team: 'Ladders' },
-  { email: 'r2r@msa.com', password: 'r2r123', team: 'R2R' },
-  { email: 'brothers@msa.com', password: 'brothers123', team: 'Brothers Social' },
-  { email: 'sisters@msa.com', password: 'sisters123', team: 'Sister Social' },
   { email: 'hope@msa.com', password: 'hope123', team: 'Hope' },
-  { email: 'submissions@msa.com', password: 'submissions123', team: 'Submissions' }
+  { email: 'submissions@msa.com', password: 'submissions123', team: 'Submissions' },
+  { email: 'ept@msa.com', password: 'ept123', team: 'EPT' },
+  { email: 'ladders@msa.com', password: 'ladders123', team: 'Ladders' },
+  { email: 'brothers@msa.com', password: 'brothers123', team: 'Brothers Social' },
+  { email: 'sisters@msa.com', password: 'sisters123', team: 'Sisters Social' },
+  { email: 'r2r@msa.com', password: 'r2r123', team: 'R2R' },
 ];
 
 async function resetTeamPasswords() {
@@ -36,13 +37,55 @@ async function resetTeamPasswords() {
         users[userIndex].password = hashedPassword;
         users[userIndex].team = teamAccount.team;
         users[userIndex].status = 'active';
+        users[userIndex].role = 'user';
+        users[userIndex].permissions = {
+          canCheckout: true,
+          canReturn: true,
+          canApprove: false,
+          canManageItems: false,
+          canManageUsers: false,
+          canViewAnalytics: false,
+          canManageSettings: false,
+          canViewReports: false,
+          canBulkImport: false
+        };
         users[userIndex].updatedAt = new Date().toISOString();
         
         console.log(`✅ ${teamAccount.team} - ${teamAccount.email}`);
         console.log(`   Password reset to: ${teamAccount.password}\n`);
         updatedCount++;
       } else {
-        console.log(`❌ User not found: ${teamAccount.email}\n`);
+        // Create account if missing
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(teamAccount.password, salt);
+        const now = new Date().toISOString();
+        users.push({
+          _id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          name: `${teamAccount.team} Team`,
+          email: teamAccount.email,
+          password: hashedPassword,
+          team: teamAccount.team,
+          role: 'user',
+          phone: '',
+          permissions: {
+            canCheckout: true,
+            canReturn: true,
+            canApprove: false,
+            canManageItems: false,
+            canManageUsers: false,
+            canViewAnalytics: false,
+            canManageSettings: false,
+            canViewReports: false,
+            canBulkImport: false
+          },
+          createdAt: now,
+          updatedAt: now,
+          status: 'active',
+          lastLogin: now
+        });
+        console.log(`🆕 Created ${teamAccount.team} - ${teamAccount.email}`);
+        updatedCount++;
       }
     }
 

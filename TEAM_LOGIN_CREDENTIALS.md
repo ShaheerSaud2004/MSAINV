@@ -11,12 +11,13 @@ All teams have **full admin access** to the system.
 | Team | Email | Password |
 |------|-------|----------|
 | 🌟 IAW | `iaw@msa.com` | `iaw123` |
-| 🪜 Ladders | `ladders@msa.com` | `ladders123` |
-| 🎯 R2R | `r2r@msa.com` | `r2r123` |
-| 👥 Brothers Social | `brothers@msa.com` | `brothers123` |
-| 👭 Sister Social | `sisters@msa.com` | `sisters123` |
 | 💚 Hope | `hope@msa.com` | `hope123` |
 | 📝 Submissions | `submissions@msa.com` | `submissions123` |
+| ⚙️ EPT | `ept@msa.com` | `ept123` |
+| 🪜 Ladders | `ladders@msa.com` | `ladders123` |
+| 👥 Brothers Social | `brothers@msa.com` | `brothers123` |
+| 👭 Sisters Social | `sisters@msa.com` | `sisters123` |
+| 🎯 R2R | `r2r@msa.com` | `r2r123` |
 
 ## 🚀 How to Login
 

@@ -78,6 +78,7 @@ app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/qr', require('./routes/qr'));
 app.use('/api/storage-visits', require('./routes/storageVisits'));
+app.use('/api/guest-requests', require('./routes/guestRequests'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
