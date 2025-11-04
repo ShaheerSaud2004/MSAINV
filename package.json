@@ -10,8 +10,11 @@
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "install-all": "npm install && cd server && npm install && cd ../client && npm install",
     "vercel-build": "cd client && npm install && npm run build",
-    "build": "cd client && npm install && npm run build && cd ../server && npm install",
-    "start:production": "cd server && node server.js"
+    "build": "npm install && cd server && npm install && cd ../client && npm install && npm run build",
+    "start:production": "cd server && node server.js",
+    "start:railway": "npm run build && npm run start:production",
+    "render-build": "npm install && cd server && npm install && cd ../client && npm install && npm run build",
+    "render-start": "cd server && node server.js"
   },
   "keywords": [
     "inventory",
