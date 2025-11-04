@@ -162,7 +162,11 @@ cron.schedule('0 9 * * *', async () => {
 
 // Start server
 const PORT = process.env.PORT || 5001;
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
+  const baseUrl = process.env.NODE_ENV === 'production' 
+    ? (process.env.RENDER_EXTERNAL_URL || `https://your-app.onrender.com`)
+    : `http://localhost:${PORT}`;
+  
   console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
@@ -171,7 +175,7 @@ const server = app.listen(PORT, () => {
 ║   Environment: ${process.env.NODE_ENV || 'development'}                              ║
 ║   Storage Mode: ${process.env.STORAGE_MODE || 'mongodb'}                           ║
 ║                                                           ║
-║   API Health: http://localhost:${PORT}/api/health           ║
+║   API Health: ${baseUrl}/api/health           ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
   `);
