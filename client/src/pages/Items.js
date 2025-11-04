@@ -23,7 +23,10 @@ const Items = () => {
 
   const fetchItems = async () => {
     try {
-      const params = {};
+      const params = {
+        limit: 1000, // Request all items (up to 1000)
+        page: 1
+      };
       if (search) params.search = search;
       if (category) params.category = category;
       if (status) params.status = status;
@@ -31,8 +34,10 @@ const Items = () => {
       const response = await itemsAPI.getAll(params);
       if (response.data.success) {
         setItems(response.data.data);
+        console.log(`Loaded ${response.data.data.length} items`);
       }
     } catch (error) {
+      console.error('Error fetching items:', error);
       toast.error('Failed to load items');
     } finally {
       setLoading(false);
@@ -180,9 +185,15 @@ const Items = () => {
         ))}
       </div>
 
-      {items.length === 0 && (
+      {items.length === 0 && !loading && (
         <div className="text-center py-12 text-gray-500">
           <p>No items found</p>
+        </div>
+      )}
+
+      {items.length > 0 && (
+        <div className="text-center py-4 text-gray-600">
+          <p className="text-sm">Showing {items.length} items</p>
         </div>
       )}
     </div>

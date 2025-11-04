@@ -9,6 +9,7 @@ const AddEditItem = () => {
   const navigate = useNavigate();
   const isEdit = Boolean(id);
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -37,11 +38,23 @@ const AddEditItem = () => {
   });
 
   useEffect(() => {
+    fetchCategories();
     if (isEdit) {
       fetchItem();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await itemsAPI.getCategories();
+      if (response.data.success) {
+        setCategories(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
   const fetchItem = async () => {
     try {
@@ -159,10 +172,17 @@ const AddEditItem = () => {
                 type="text"
                 name="category"
                 required
+                list="categories-list"
                 className="input-field"
                 value={formData.category}
                 onChange={handleChange}
+                placeholder="Select or type a category"
               />
+              <datalist id="categories-list">
+                {categories.map((cat) => (
+                  <option key={cat} value={cat} />
+                ))}
+              </datalist>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Sub-Category</label>

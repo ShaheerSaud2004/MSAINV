@@ -12,7 +12,7 @@ router.get('/', protect, async (req, res) => {
   try {
     const { 
       page = 1, 
-      limit = 10, 
+      limit = 1000, // Increased to show all items by default
       search = '', 
       category = '', 
       status = '', 
