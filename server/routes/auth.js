@@ -11,6 +11,9 @@ const path = require('path');
 
 // Generate JWT Token
 const generateToken = (id) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is not set. Please configure it in Railway environment variables.');
+  }
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d'
   });
@@ -206,10 +209,20 @@ router.post('/login', [
     });
   } catch (error) {
     console.error('Login error:', error);
+    
+    // Check if JWT_SECRET is missing
+    if (error.message && error.message.includes('JWT_SECRET')) {
+      return res.status(500).json({
+        success: false,
+        message: 'Server configuration error: JWT_SECRET is not set. Please contact administrator.',
+        error: 'JWT_SECRET_MISSING'
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Server error during login',
-      error: error.message
+      error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
     });
   }
 });

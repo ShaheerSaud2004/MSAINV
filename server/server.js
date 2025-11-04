@@ -17,6 +17,14 @@ const app = express();
 // This allows express-rate-limit to work correctly with X-Forwarded-For header
 app.set('trust proxy', true);
 
+// Validate required environment variables
+if (!process.env.JWT_SECRET) {
+  console.error('❌ ERROR: JWT_SECRET environment variable is not set!');
+  console.error('   Please set JWT_SECRET in Railway environment variables.');
+  console.error('   Example: JWT_SECRET=your-super-secret-key-min-32-characters-long');
+  process.exit(1);
+}
+
 // Connect to database (MongoDB or JSON storage)
 connectDatabase();
 
@@ -64,7 +72,14 @@ if (process.env.NODE_ENV === 'production') {
     max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
     standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-    validate: { trustProxy: false } // Disable trust proxy validation
+    validate: {
+      trustProxy: true // Match the app's trust proxy setting
+    },
+    // Use a custom key generator that works with Railway's proxy
+    keyGenerator: (req) => {
+      // Use X-Forwarded-For header if available, otherwise use IP
+      return req.headers['x-forwarded-for']?.split(',')[0] || req.ip || req.connection.remoteAddress;
+    }
   });
   app.use('/api/', limiter);
 }
