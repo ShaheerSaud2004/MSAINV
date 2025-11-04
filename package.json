@@ -13,7 +13,7 @@
     "build": "npm install && cd server && npm install && cd ../client && npm install && npm run build",
     "start:production": "cd server && node server.js",
     "start:railway": "npm run build && npm run start:production",
-    "render-build": "npm install && cd server && npm install && cd ../client && npm install && npm run build",
+    "render-build": "npm install && cd server && NODE_ENV=development npm install && cd ../client && NODE_ENV=development npm install && npm run build",
     "render-start": "cd server && node server.js"
   },
   "keywords": [
