@@ -120,7 +120,9 @@ const Dashboard = () => {
             Dashboard
           </h1>
           <div className="flex flex-wrap items-center gap-2 mt-2">
-            <p className="text-gray-600 text-lg">Welcome back! Here's what's happening with your inventory.</p>
+            <p className="text-gray-600 text-lg">
+              Welcome back{user?.name ? `, ${user.name.split(' ')[0]}` : ''}! Here's what's happening with your inventory.
+            </p>
             <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
               Last updated: {format(lastUpdated, 'h:mm a')}
             </span>
@@ -201,6 +203,47 @@ const Dashboard = () => {
             gradient="bg-gradient-to-br from-red-500 to-red-600"
             link="/transactions?status=overdue"
           />
+        </div>
+      )}
+
+      {/* Welcome Section with Recent Checkouts */}
+      {isBaseUser && recentActivity && recentActivity.length > 0 && (
+        <div className="card bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <ClockIcon className="w-6 h-6 text-blue-600" />
+              <h2 className="text-xl font-bold text-gray-900">Your Recent Checkouts</h2>
+            </div>
+            <Link to="/transactions?status=active" className="text-sm text-blue-600 hover:text-blue-700 font-semibold">
+              View All →
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {recentActivity
+              .filter(t => t.status === 'active')
+              .slice(0, 3)
+              .map((checkout) => (
+                <Link
+                  key={checkout._id || checkout.id}
+                  to={`/items/${checkout.item?._id || checkout.item?.id || checkout.item}`}
+                  className="bg-white p-4 rounded-lg hover:shadow-md transition-shadow border border-gray-200"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900 truncate">{checkout.item?.name || 'Unknown Item'}</p>
+                      <p className="text-xs text-gray-600 mt-1">
+                        Checked out: {format(new Date(checkout.checkoutDate || checkout.createdAt), 'MMM dd, h:mm a')}
+                      </p>
+                      {checkout.item?.category && (
+                        <span className="inline-block mt-2 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                          {checkout.item.category}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+          </div>
         </div>
       )}
 

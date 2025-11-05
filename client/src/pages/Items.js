@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { itemsAPI } from '../services/api';
+import { itemsAPI, transactionsAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { PlusIcon, MagnifyingGlassIcon, QrCodeIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, MagnifyingGlassIcon, QrCodeIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { format } from 'date-fns';
 
 const Items = () => {
   const { hasPermission } = useAuth();
@@ -14,10 +15,12 @@ const Items = () => {
   const [category, setCategory] = useState('');
   const [status, setStatus] = useState('');
   const [categories, setCategories] = useState([]);
+  const [recentCheckouts, setRecentCheckouts] = useState([]);
 
   useEffect(() => {
     fetchItems();
     fetchCategories();
+    fetchRecentCheckouts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, category, status]);
 
@@ -55,6 +58,25 @@ const Items = () => {
     }
   };
 
+  const fetchRecentCheckouts = async () => {
+    try {
+      const response = await transactionsAPI.getAll({ status: 'active', limit: 10 });
+      if (response.data.success) {
+        // Sort by checkout date, most recent first and add category from item
+        const sorted = response.data.data
+          .map(t => ({
+            ...t,
+            category: t.item?.category || t.category
+          }))
+          .sort((a, b) => new Date(b.checkoutDate || b.createdAt) - new Date(a.checkoutDate || a.createdAt))
+          .slice(0, 5);
+        setRecentCheckouts(sorted);
+      }
+    } catch (error) {
+      console.error('Error fetching recent checkouts:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -79,9 +101,47 @@ const Items = () => {
         )}
       </div>
 
+      {/* Recently Checked Out Items */}
+      {recentCheckouts.length > 0 && (
+        <div className="card bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <ClockIcon className="w-6 h-6 text-blue-600" />
+              <h2 className="text-xl font-bold text-gray-900">Recently Checked Out</h2>
+            </div>
+            <Link to="/transactions?status=active" className="text-sm text-blue-600 hover:text-blue-700 font-semibold">
+              View All →
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {recentCheckouts.map((checkout) => (
+              <Link
+                key={checkout._id || checkout.id}
+                to={`/items/${checkout.item?._id || checkout.item?.id || checkout.item}`}
+                className="bg-white p-3 rounded-lg hover:shadow-md transition-shadow border border-gray-200"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900 truncate">{checkout.item?.name || 'Unknown Item'}</p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      {checkout.user?.name || 'Unknown User'} • {format(new Date(checkout.checkoutDate || checkout.createdAt), 'MMM dd, h:mm a')}
+                    </p>
+                    {checkout.category && (
+                      <span className="inline-block mt-2 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                        {checkout.category}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="card">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
             <div className="relative">
@@ -122,6 +182,38 @@ const Items = () => {
             </select>
           </div>
         </div>
+        
+        {/* Category Quick Filters */}
+        {categories.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Quick Filter by Category</label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setCategory('')}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  category === '' 
+                    ? 'bg-blue-600 text-white shadow-md' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                All
+              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setCategory(cat)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    category === cat 
+                      ? 'bg-blue-600 text-white shadow-md' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Items Grid */}
