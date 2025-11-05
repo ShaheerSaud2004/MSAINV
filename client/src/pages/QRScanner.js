@@ -105,7 +105,7 @@ const QRScanner = () => {
   };
 
   const handleScanSuccess = async (decodedText, decodedResult) => {
-    stopCamera();
+    await stopCamera();
     setLoading(true);
     
     try {
