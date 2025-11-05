@@ -82,7 +82,7 @@ const Quiz = () => {
     },
     // Storage Policy Questions (7-11)
     {
-      id: 6,
+      id: 7,
       question: 'According to the MSA Storage Policy, where is the on-campus storage location?',
       options: [
         'Student Center Basement',
@@ -93,7 +93,7 @@ const Quiz = () => {
       correct: 1
     },
     {
-      id: 7,
+      id: 8,
       question: 'According to the Storage Policy, what must you do when accessing storage via WhatsApp?',
       options: [
         'Just notify Maimuna when you\'re done',
@@ -104,7 +104,7 @@ const Quiz = () => {
       correct: 1
     },
     {
-      id: 8,
+      id: 9,
       question: 'According to the Storage Policy, how long after your event do you have to return borrowed materials?',
       options: [
         '24 hours',
@@ -115,7 +115,7 @@ const Quiz = () => {
       correct: 1
     },
     {
-      id: 9,
+      id: 10,
       question: 'According to the Storage Policy, what happens if you take items from Box 2 that were organized in a bag?',
       options: [
         'You can return them loose in any box',
@@ -126,7 +126,7 @@ const Quiz = () => {
       correct: 1
     },
     {
-      id: 10,
+      id: 11,
       question: 'According to the Storage Policy, what is the consequence of disregarding storage expectations?',
       options: [
         'You receive a warning',
