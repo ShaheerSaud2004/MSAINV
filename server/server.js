@@ -20,32 +20,20 @@ app.set('trust proxy', true);
 // Validate required environment variables
 if (!process.env.JWT_SECRET) {
   console.error('❌ ERROR: JWT_SECRET environment variable is not set!');
-  console.error('   Please set JWT_SECRET in Vercel environment variables.');
+  console.error('   Please set JWT_SECRET in Railway environment variables.');
   console.error('   Example: JWT_SECRET=your-super-secret-key-min-32-characters-long');
-  // Don't exit on Vercel - let it fail gracefully
-  if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
-    process.exit(1);
-  }
+  process.exit(1);
 }
 
-// Connect to database (MongoDB or JSON storage) - async, but don't block
-if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
-  connectDatabase();
-} else {
-  // On Vercel, connect but don't wait - it will connect when needed
-  connectDatabase().catch(err => {
-    console.error('Database connection error (non-fatal):', err.message);
-  });
-}
+// Connect to database (MongoDB or JSON storage)
+connectDatabase();
 
 // Middleware
 app.use(helmet()); // Security headers
 
-// CORS - Allow Railway, Vercel, or local development
+// CORS - Allow Railway or local development
 const allowedOrigins = [
   process.env.CLIENT_URL,
-  process.env.VERCEL_URL,
-  process.env.NEXT_PUBLIC_VERCEL_URL,
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:3021', // Custom development port
@@ -119,29 +107,20 @@ app.get('/api/health', (req, res) => {
 });
 
 // Serve React frontend in production
-if (process.env.NODE_ENV === 'production' || process.env.VERCEL || process.env.VERCEL_ENV) {
-  const buildPath = path.join(__dirname, '../client/build');
-  
+if (process.env.NODE_ENV === 'production') {
   // Serve static files from React build
-  app.use(express.static(buildPath));
+  app.use(express.static(path.join(__dirname, '../client/build')));
   
   // Serve uploaded files
   app.use('/storage/uploads', express.static(path.join(__dirname, 'storage/uploads')));
   
   // Handle React routing - return index.html for all non-API routes
-  app.get('*', (req, res, next) => {
+  app.get('*', (req, res) => {
     // Skip API routes
     if (req.path.startsWith('/api')) {
-      return next(); // Let API routes be handled by their routes
+      return res.status(404).json({ success: false, message: 'API endpoint not found' });
     }
-    // Serve index.html for client-side routing
-    const indexPath = path.join(buildPath, 'index.html');
-    res.sendFile(indexPath, (err) => {
-      if (err) {
-        console.error('Error serving index.html:', err);
-        res.status(404).send('Frontend not found. Please ensure client/build exists.');
-      }
-    });
+    res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
   });
 } else {
   // Root endpoint for development
@@ -158,40 +137,37 @@ if (process.env.NODE_ENV === 'production' || process.env.VERCEL || process.env.V
 // Error handler (must be last)
 app.use(errorHandler);
 
-// Background jobs using cron (skip on Vercel - use Vercel Cron instead)
-if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
-  // Run overdue check every day at midnight
-  cron.schedule('0 0 * * *', async () => {
-    console.log('Running overdue detection job...');
-    try {
-      const overdueCount = await sendOverdueNotifications();
-      console.log(`Overdue detection complete. Found ${overdueCount} overdue transactions.`);
-    } catch (error) {
-      console.error('Error in overdue detection job:', error);
-    }
-  });
+// Background jobs using cron
+// Run overdue check every day at midnight
+cron.schedule('0 0 * * *', async () => {
+  console.log('Running overdue detection job...');
+  try {
+    const overdueCount = await sendOverdueNotifications();
+    console.log(`Overdue detection complete. Found ${overdueCount} overdue transactions.`);
+  } catch (error) {
+    console.error('Error in overdue detection job:', error);
+  }
+});
 
-  // Run due soon reminders every day at 9 AM
-  cron.schedule('0 9 * * *', async () => {
-    console.log('Running due soon reminder job...');
-    try {
-      const reminderCount = await sendDueSoonReminders();
-      console.log(`Due soon reminders sent. ${reminderCount} reminders sent.`);
-    } catch (error) {
-      console.error('Error in due soon reminder job:', error);
-    }
-  });
-}
+// Run due soon reminders every day at 9 AM
+cron.schedule('0 9 * * *', async () => {
+  console.log('Running due soon reminder job...');
+  try {
+    const reminderCount = await sendDueSoonReminders();
+    console.log(`Due soon reminders sent. ${reminderCount} reminders sent.`);
+  } catch (error) {
+    console.error('Error in due soon reminder job:', error);
+  }
+});
 
-// Start server (skip if running on Vercel)
-if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
-  const PORT = process.env.PORT || 5001;
-  const server = app.listen(PORT, '0.0.0.0', () => {
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? (process.env.RENDER_EXTERNAL_URL || process.env.VERCEL_URL || `https://your-app.onrender.com`)
-      : `http://localhost:${PORT}`;
-    
-    console.log(`
+// Start server
+const PORT = process.env.PORT || 5001;
+const server = app.listen(PORT, '0.0.0.0', () => {
+  const baseUrl = process.env.NODE_ENV === 'production' 
+    ? (process.env.RENDER_EXTERNAL_URL || `https://your-app.onrender.com`)
+    : `http://localhost:${PORT}`;
+  
+  console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
 ║   MSA Inventory Management System                        ║
@@ -202,20 +178,14 @@ if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
 ║   API Health: ${baseUrl}/api/health           ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
-    `);
-  });
-}
+  `);
+});
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err, promise) => {
   console.log(`Error: ${err.message}`);
-  // Only close server if it exists (not on Vercel)
-  if (typeof server !== 'undefined' && server) {
-    server.close(() => process.exit(1));
-  } else {
-    // On Vercel, just log the error
-    console.error('Unhandled rejection:', err);
-  }
+  // Close server & exit process
+  server.close(() => process.exit(1));
 });
 
 module.exports = app;

@@ -68,9 +68,7 @@ class JSONStorageService {
 
   async findUserByEmail(email) {
     const users = await this.readCollection('users');
-    // Case-insensitive email lookup
-    const normalizedEmail = email.toLowerCase().trim();
-    return users.find(u => (u.email || '').toLowerCase().trim() === normalizedEmail);
+    return users.find(u => u.email === email);
   }
 
   async createUser(userData) {

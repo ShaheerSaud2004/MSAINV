@@ -262,18 +262,40 @@ const Tutorial = () => {
 
         {/* Navigation */}
         <div className="flex items-center justify-between pt-6 border-t">
-          <button
-            onClick={handlePrevious}
-            disabled={currentSection === 0}
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
-              currentSection === 0
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            <ChevronLeftIcon className="w-5 h-5" />
-            Previous
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={handlePrevious}
+              disabled={currentSection === 0}
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
+                currentSection === 0
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              <ChevronLeftIcon className="w-5 h-5" />
+              Previous
+            </button>
+            {currentSection === sections.length - 1 && (
+              <button
+                onClick={() => {
+                  if (window.confirm('Skip tutorial and quiz? This will grant you immediate access.')) {
+                    // Mark quiz as passed (skip)
+                    const quizData = {
+                      passed: true,
+                      completedAt: new Date().toISOString(),
+                      permanent: true,
+                      skipped: true
+                    };
+                    localStorage.setItem('quiz_completed', JSON.stringify(quizData));
+                    navigate('/dashboard');
+                  }
+                }}
+                className="px-6 py-3 bg-yellow-500 text-white rounded-lg font-medium hover:bg-yellow-600 transition-all"
+              >
+                Skip Tutorial & Quiz
+              </button>
+            )}
+          </div>
 
           <div className="flex gap-2">
             {sections.map((_, index) => (
