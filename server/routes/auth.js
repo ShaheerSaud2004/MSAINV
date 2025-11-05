@@ -152,6 +152,16 @@ router.post('/login', [
     const user = await storageService.findUserByEmail(email);
     
     if (!user) {
+      console.error('Login failed: User not found for email:', email);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    }
+
+    // Check if password field exists
+    if (!user.password) {
+      console.error('Login failed: User has no password field:', user.id);
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
@@ -162,6 +172,7 @@ router.post('/login', [
     const isMatch = await bcrypt.compare(password, user.password);
     
     if (!isMatch) {
+      console.error('Login failed: Password mismatch for user:', user.email);
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
@@ -209,6 +220,7 @@ router.post('/login', [
     });
   } catch (error) {
     console.error('Login error:', error);
+    console.error('Error stack:', error.stack);
     
     // Check if JWT_SECRET is missing
     if (error.message && error.message.includes('JWT_SECRET')) {
@@ -216,6 +228,15 @@ router.post('/login', [
         success: false,
         message: 'Server configuration error: JWT_SECRET is not set. Please contact administrator.',
         error: 'JWT_SECRET_MISSING'
+      });
+    }
+    
+    // Check if it's a database/connection error
+    if (error.message && (error.message.includes('relation') || error.message.includes('does not exist'))) {
+      return res.status(500).json({
+        success: false,
+        message: 'Database tables not set up. Please run the Supabase migration SQL.',
+        error: 'DATABASE_NOT_INITIALIZED'
       });
     }
     

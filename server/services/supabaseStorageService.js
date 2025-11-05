@@ -35,18 +35,33 @@ class SupabaseStorageService {
   }
 
   async findUserByEmail(email) {
-    const { data, error } = await this.supabase
-      .from('users')
-      .select('*')
-      .eq('email', email.toLowerCase())
-      .single();
-    
-    if (error && error.code !== 'PGRST116') {
-      console.error('Error finding user by email:', error);
-      return null;
+    try {
+      const { data, error } = await this.supabase
+        .from('users')
+        .select('*')
+        .eq('email', email.toLowerCase())
+        .single();
+      
+      if (error) {
+        // PGRST116 = not found (this is OK)
+        if (error.code === 'PGRST116') {
+          return null;
+        }
+        // Other errors (like table doesn't exist)
+        console.error('Supabase error finding user by email:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        if (error.message && (error.message.includes('relation') || error.message.includes('does not exist'))) {
+          throw new Error('Database tables do not exist. Please run the Supabase migration SQL first.');
+        }
+        return null;
+      }
+      
+      return data || null;
+    } catch (error) {
+      console.error('Exception in findUserByEmail:', error);
+      throw error;
     }
-    
-    return data || null;
   }
 
   async createUser(userData) {
