@@ -1,9 +1,10 @@
 import axios from 'axios';
 
-// In production (Railway), use relative URL. In development, use localhost.
+// In production (Railway/Vercel), use relative URL. In development, use localhost.
+// For ngrok/local development, use the correct port (3022)
 const API_URL = process.env.NODE_ENV === 'production' 
   ? '/api'  // Relative URL for production (same domain)
-  : process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
+  : process.env.REACT_APP_API_URL || 'http://localhost:3022/api';
 
 // Create axios instance
 const api = axios.create({

@@ -52,19 +52,25 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await authAPI.login({ email, password });
-      if (response.data.success) {
+      if (response.data && response.data.success) {
         const { user, token } = response.data.data;
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
         setUser(user);
         setIsAuthenticated(true);
         return { success: true, user };
+      } else {
+        return {
+          success: false,
+          message: response.data?.message || 'Login failed - invalid response'
+        };
       }
     } catch (error) {
       console.error('Login error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Login failed';
       return {
         success: false,
-        message: error.response?.data?.message || 'Login failed'
+        message: errorMessage
       };
     }
   };
