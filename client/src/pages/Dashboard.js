@@ -240,6 +240,39 @@ const Dashboard = () => {
         </div>
       )}
 
+      {/* Quick Checkout Section */}
+      <div className="card bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-l-4 border-blue-500">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+              <QrCodeIcon className="w-6 h-6 text-blue-600" />
+              Quick Checkout
+            </h2>
+            <p className="text-gray-700 mb-3">
+              Browse all available items and request checkout directly from the inventory page.
+            </p>
+            <div className="bg-white rounded-lg p-4 border border-gray-200 mb-3">
+              <p className="text-sm font-medium text-gray-600 mb-2">Quick Access Link:</p>
+              <a
+                href="https://00cd5ca08599.ngrok-free.app/items"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-700 font-mono text-sm break-all underline"
+              >
+                https://00cd5ca08599.ngrok-free.app/items
+              </a>
+            </div>
+            <Link
+              to="/items"
+              className="inline-flex items-center gap-2 btn-primary"
+            >
+              <CubeIcon className="w-5 h-5" />
+              Browse Items
+            </Link>
+          </div>
+        </div>
+      </div>
+
       {/* Welcome Section with Recent Checkouts */}
       {isBaseUser && recentActivity && recentActivity.length > 0 && (
         <div className="card bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500">

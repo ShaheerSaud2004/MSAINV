@@ -363,25 +363,53 @@ ${formData.notes ? `\nAdditional notes: ${formData.notes}` : ''}
         </div>
 
         {/* Terms & Conditions */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <h4 className="font-semibold text-gray-900 mb-2">⚠️ Terms & Conditions</h4>
-          <ul className="text-sm text-gray-700 space-y-1 mb-3">
-            <li>• I agree to return the item(s) by the specified return date</li>
-            <li>• I will take full responsibility for the item(s) while in my possession</li>
-            <li>• I understand that late returns may result in penalties</li>
-            <li>• I will return the item(s) in the same condition as received</li>
-            <li>• I will notify MSA immediately if the item is lost or damaged</li>
+        <div className="bg-gradient-to-r from-yellow-50 via-orange-50 to-red-50 border-2 border-orange-300 rounded-lg p-5">
+          <h4 className="font-bold text-lg text-gray-900 mb-3 flex items-center gap-2">
+            <span className="text-2xl">⚠️</span>
+            Terms & Conditions
+          </h4>
+          <div className="bg-red-50 border-l-4 border-red-500 p-3 mb-3 rounded">
+            <p className="text-sm font-bold text-red-800">
+              ⚠️ IMPORTANT: Items must be returned in the SAME location and condition as received. 
+              Failure to do so will result in ACCESS REMOVAL.
+            </p>
+          </div>
+          <ul className="text-sm text-gray-700 space-y-2 mb-4">
+            <li className="flex items-start">
+              <span className="mr-2">•</span>
+              <span>I agree to return the item(s) by the specified return date</span>
+            </li>
+            <li className="flex items-start">
+              <span className="mr-2">•</span>
+              <span>I will take full responsibility for the item(s) while in my possession</span>
+            </li>
+            <li className="flex items-start">
+              <span className="mr-2">•</span>
+              <span>I understand that late returns may result in penalties</span>
+            </li>
+            <li className="flex items-start">
+              <span className="mr-2">•</span>
+              <span><strong>I will return the item(s) in the same location and condition as received</strong></span>
+            </li>
+            <li className="flex items-start">
+              <span className="mr-2">•</span>
+              <span>I will notify MSA immediately if the item is lost or damaged</span>
+            </li>
+            <li className="flex items-start">
+              <span className="mr-2">•</span>
+              <span><strong>I understand that failure to return items properly will result in access being removed</strong></span>
+            </li>
           </ul>
-          <label className="flex items-center">
+          <label className="flex items-start bg-white p-3 rounded-lg border-2 border-gray-300">
             <input
               type="checkbox"
               name="agreeToTerms"
               required
-              className="mr-2 h-4 w-4"
+              className="mr-3 h-5 w-5 mt-0.5 flex-shrink-0"
               checked={formData.agreeToTerms}
               onChange={handleChange}
             />
-            <span className="text-sm font-medium text-gray-900">
+            <span className="text-sm font-bold text-gray-900">
               I agree to the terms and conditions *
             </span>
           </label>
