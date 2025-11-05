@@ -4,8 +4,7 @@ import { Link } from 'react-router-dom';
 import { analyticsAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import LoadingSpinner from '../components/LoadingSpinner';
-import Tour from '../components/Tour';
-import { getTourSteps, hasCompletedTour, markTourCompleted } from '../utils/tourConfig';
+// Tour system replaced with Tutorial + Quiz system
 import {
   CubeIcon,
   ArrowTrendingUpIcon,
@@ -24,13 +23,10 @@ const Dashboard = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [dashboardData, setDashboardData] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(new Date());
-  const [showTour, setShowTour] = useState(false);
-
   useEffect(() => {
     fetchDashboardData();
     
     // Quiz check is now handled in ProtectedRoute
-    // No need to check tour here anymore
     
     // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
@@ -117,31 +113,9 @@ const Dashboard = () => {
     </Link>
   );
 
-  const handleTourComplete = () => {
-    if (user) {
-      markTourCompleted(user.role);
-    }
-    setShowTour(false);
-    toast.success('Tour completed! You can restart it anytime from Settings.');
-  };
-
-  const handleTourSkip = () => {
-    if (user) {
-      markTourCompleted(user.role);
-    }
-    setShowTour(false);
-  };
 
   return (
     <div className="space-y-8">
-      {/* Guided Tour */}
-      {showTour && user && (
-        <Tour
-          steps={getTourSteps(user.role)}
-          onComplete={handleTourComplete}
-          onSkip={handleTourSkip}
-        />
-      )}
       {/* Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 animate-fade-in">
         <div className="flex-1">

@@ -56,6 +56,11 @@ const ProtectedRoute = ({ children }) => {
     }
   }
 
+  // Don't show layout for tutorial and quiz pages
+  if (currentPath === '/tutorial' || currentPath === '/quiz') {
+    return <>{children}</>;
+  }
+
   return <Layout>{children}</Layout>;
 };
 
