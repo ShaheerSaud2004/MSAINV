@@ -59,17 +59,6 @@ const Quiz = () => {
     },
     {
       id: 5,
-      question: 'What is the QUICK ACCESS URL to browse all available items?',
-      options: [
-        'https://00cd5ca08599.ngrok-free.app/dashboard',
-        'https://00cd5ca08599.ngrok-free.app/items',
-        'https://00cd5ca08599.ngrok-free.app/transactions',
-        'The URL is not important'
-      ],
-      correct: 1
-    },
-    {
-      id: 6,
       question: 'What is the approval process for ALL checkout requests?',
       options: [
         'Some checkouts are instant, others need approval',
@@ -80,7 +69,7 @@ const Quiz = () => {
       correct: 1
     },
     {
-      id: 7,
+      id: 6,
       question: 'If an item is lost or damaged while in your possession, what should you do IMMEDIATELY?',
       options: [
         'Wait until the return date to report it',
@@ -91,29 +80,7 @@ const Quiz = () => {
       correct: 1
     },
     {
-      id: 8,
-      question: 'Where can you view the status of all your checkout requests (pending, active, returned)?',
-      options: [
-        'Only on the Dashboard',
-        'The Transactions page shows all your checkout history and statuses',
-        'You have to ask a manager',
-        'Notifications page only'
-      ],
-      correct: 1
-    },
-    {
-      id: 9,
-      question: 'What is the minimum passing score required to access the system?',
-      options: [
-        '50% (5 out of 10)',
-        '60% (6 out of 10)',
-        '80% (8 out of 10)',
-        '100% (10 out of 10)'
-      ],
-      correct: 2
-    },
-    {
-      id: 10,
+      id: 7,
       question: 'What does the Terms & Conditions agreement SPECIFICALLY state about item condition?',
       options: [
         'Items should be returned in "good" condition',
@@ -124,84 +91,7 @@ const Quiz = () => {
       correct: 1
     },
     {
-      id: 11,
-      question: 'How can you quickly checkout an item using technology?',
-      options: [
-        'By calling the manager',
-        'By using the QR Scanner to scan QR codes or barcodes on items',
-        'By sending an email',
-        'By filling out a paper form'
-      ],
-      correct: 1
-    },
-    {
-      id: 12,
-      question: 'What happens when you scan a QR code on an item?',
-      options: [
-        'Nothing - QR codes are just for decoration',
-        'The item details appear automatically and you can request checkout',
-        'You automatically get the item without approval',
-        'You get redirected to the login page'
-      ],
-      correct: 1
-    },
-    {
-      id: 13,
-      question: 'Where should you check for updates about your checkout requests (approvals, rejections, reminders)?',
-      options: [
-        'Only via email',
-        'The Notifications section (bell icon) shows all important updates',
-        'You have to check with a manager personally',
-        'There are no notifications'
-      ],
-      correct: 1
-    },
-    {
-      id: 14,
-      question: 'What is the purpose of uploading photos after approval?',
-      options: [
-        'It\'s optional and just for fun',
-        'Photos are REQUIRED for safety, accountability, and documentation before closing transactions',
-        'Photos are only needed for expensive items',
-        'Photos are only for first-time users'
-      ],
-      correct: 1
-    },
-    {
-      id: 15,
-      question: 'If your checkout request is pending approval, what should you do?',
-      options: [
-        'Go pick up the item anyway',
-        'Wait for approval notification - do not pick up until approved',
-        'Call the manager to hurry them up',
-        'Submit another request'
-      ],
-      correct: 1
-    },
-    {
-      id: 16,
-      question: 'What information is displayed in the "Quick Checkout" section on the Dashboard?',
-      options: [
-        'Only your recent checkouts',
-        'The quick access URL to browse items: https://00cd5ca08599.ngrok-free.app/items',
-        'Nothing important',
-        'Only statistics'
-      ],
-      correct: 1
-    },
-    {
-      id: 17,
-      question: 'What is your responsibility regarding items while they are checked out to you?',
-      options: [
-        'You have no responsibility',
-        'You take FULL responsibility for items while in your possession',
-        'The manager is responsible',
-        'Responsibility is shared'
-      ],
-      correct: 1
-    },
-    {
-      id: 18,
+      id: 8,
       question: 'Can you close or return a transaction without uploading the required photos?',
       options: [
         'Yes, photos are optional',
@@ -212,18 +102,18 @@ const Quiz = () => {
       correct: 1
     },
     {
-      id: 19,
-      question: 'What happens if you try to checkout more items than are available?',
+      id: 9,
+      question: 'What is your responsibility regarding items while they are checked out to you?',
       options: [
-        'The system automatically orders more',
-        'The system will reject your request if quantity exceeds available quantity',
-        'You get put on a waiting list',
-        'The manager decides'
+        'You have no responsibility',
+        'You take FULL responsibility for items while in your possession',
+        'The manager is responsible',
+        'Responsibility is shared'
       ],
       correct: 1
     },
     {
-      id: 20,
+      id: 10,
       question: 'What is the MOST IMPORTANT rule to remember about returning items?',
       options: [
         'Return them whenever you feel like it',
@@ -296,7 +186,7 @@ const Quiz = () => {
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">System Access Quiz</h1>
           <p className="text-gray-600 mb-6">
-            Answer all {questions.length} questions correctly (80% required to pass). This quiz must be passed once to access the system.
+            Answer all {questions.length} questions correctly (80% required to pass - need 8 out of 10 correct). This quiz must be passed once to access the system.
           </p>
 
           {submitted && (
