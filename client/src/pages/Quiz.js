@@ -135,6 +135,17 @@ const Quiz = () => {
         'Nothing happens'
       ],
       correct: 1
+    },
+    {
+      id: 12,
+      question: 'According to the Storage Policy, what happens if you reorganize or assign new spaces without approval from Maimuna?',
+      options: [
+        'You die',
+        'Your spec team will lose access to storage',
+        'You get a promotion',
+        'Nothing happens - it\'s allowed'
+      ],
+      correct: 1
     }
   ];
 
@@ -204,7 +215,7 @@ const Quiz = () => {
           </p>
           <div className="bg-blue-50 border-l-4 border-blue-500 p-3 mb-6 rounded">
             <p className="text-sm text-blue-800 font-semibold">
-              📝 Questions 1-6: Website functionality | Questions 7-11: MSA Storage Policy & Agreement
+              📝 Questions 1-6: Website functionality | Questions 7-12: MSA Storage Policy & Agreement
             </p>
           </div>
 
