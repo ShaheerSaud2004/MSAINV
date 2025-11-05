@@ -13,20 +13,10 @@ const Quiz = () => {
   const [passed, setPassed] = useState(false);
 
   const questions = [
+    // Website Questions (1-5)
     {
       id: 1,
-      question: 'What is the CONSEQUENCE if you fail to return items in the exact same location and condition as received?',
-      options: [
-        'You receive a verbal warning',
-        'You pay a small late fee',
-        'Your system access will be permanently removed',
-        'You get a second chance automatically'
-      ],
-      correct: 2
-    },
-    {
-      id: 2,
-      question: 'After your checkout is approved, what is REQUIRED before you can mark the transaction as returned?',
+      question: 'After your checkout is approved on the website, what is REQUIRED before you can mark the transaction as returned?',
       options: [
         'Upload photos of your storage visit',
         'Get verbal confirmation from a manager',
@@ -36,30 +26,8 @@ const Quiz = () => {
       correct: 0
     },
     {
-      id: 3,
-      question: 'What specific information is REQUIRED when submitting a checkout request? (Select the most complete answer)',
-      options: [
-        'Name, quantity, and purpose only',
-        'Name, team, phone, email, quantity, purpose, expected return date, and agreement to terms',
-        'Name and item name only',
-        'Just your email and the item you want'
-      ],
-      correct: 1
-    },
-    {
-      id: 4,
-      question: 'If you return an item after the expected return date, what happens?',
-      options: [
-        'Nothing - there are no consequences',
-        'You automatically receive late fees calculated per day overdue',
-        'You get a free pass if it\'s your first time',
-        'You just need to apologize'
-      ],
-      correct: 1
-    },
-    {
-      id: 5,
-      question: 'What is the approval process for ALL checkout requests?',
+      id: 2,
+      question: 'What is the approval process for ALL checkout requests on the website?',
       options: [
         'Some checkouts are instant, others need approval',
         'ALL checkouts require manager or admin approval before you can pick up items',
@@ -69,30 +37,8 @@ const Quiz = () => {
       correct: 1
     },
     {
-      id: 6,
-      question: 'If an item is lost or damaged while in your possession, what should you do IMMEDIATELY?',
-      options: [
-        'Wait until the return date to report it',
-        'Notify MSA immediately via the system or contact',
-        'Try to fix it yourself first',
-        'Hide it and hope no one notices'
-      ],
-      correct: 1
-    },
-    {
-      id: 7,
-      question: 'What does the Terms & Conditions agreement SPECIFICALLY state about item condition?',
-      options: [
-        'Items should be returned in "good" condition',
-        'Items must be returned in the SAME location and condition as received',
-        'Items can be returned in any condition',
-        'Only damaged items need special handling'
-      ],
-      correct: 1
-    },
-    {
-      id: 8,
-      question: 'Can you close or return a transaction without uploading the required photos?',
+      id: 3,
+      question: 'Can you close or return a transaction on the website without uploading the required photos?',
       options: [
         'Yes, photos are optional',
         'No - the system prevents closing transactions until photos are uploaded',
@@ -102,24 +48,80 @@ const Quiz = () => {
       correct: 1
     },
     {
-      id: 9,
-      question: 'What is your responsibility regarding items while they are checked out to you?',
+      id: 4,
+      question: 'Where on the website can you view the status of all your checkout requests (pending, active, returned)?',
       options: [
-        'You have no responsibility',
-        'You take FULL responsibility for items while in your possession',
-        'The manager is responsible',
-        'Responsibility is shared'
+        'Only on the Dashboard',
+        'The Transactions page shows all your checkout history and statuses',
+        'You have to ask a manager',
+        'Notifications page only'
+      ],
+      correct: 1
+    },
+    {
+      id: 5,
+      question: 'What specific information is REQUIRED when submitting a checkout request on the website? (Select the most complete answer)',
+      options: [
+        'Name, quantity, and purpose only',
+        'Name, team, phone, email, quantity, purpose, expected return date, and agreement to terms',
+        'Name and item name only',
+        'Just your email and the item you want'
+      ],
+      correct: 1
+    },
+    // Storage Policy Questions (6-10)
+    {
+      id: 6,
+      question: 'According to the MSA Storage Policy, where is the on-campus storage location?',
+      options: [
+        'Student Center Basement',
+        'Lucy Stone Hall Basement (Livingston Campus)',
+        'Rutgers Business School',
+        'The location is not specified'
+      ],
+      correct: 1
+    },
+    {
+      id: 7,
+      question: 'According to the Storage Policy, what must you do when accessing storage via WhatsApp?',
+      options: [
+        'Just notify Maimuna when you\'re done',
+        'Send a check-in photo upon entering AND a check-out photo after finishing',
+        'Only send a photo when you leave',
+        'No photos are required'
+      ],
+      correct: 1
+    },
+    {
+      id: 8,
+      question: 'According to the Storage Policy, how long after your event do you have to return borrowed materials?',
+      options: [
+        '24 hours',
+        '48 hours',
+        '1 week',
+        'There is no time limit'
+      ],
+      correct: 1
+    },
+    {
+      id: 9,
+      question: 'According to the Storage Policy, what happens if you take items from Box 2 that were organized in a bag?',
+      options: [
+        'You can return them loose in any box',
+        'You must return them in the same bag, neatly back into Box 2',
+        'You can put them in a different box',
+        'You can leave them on the floor'
       ],
       correct: 1
     },
     {
       id: 10,
-      question: 'What is the MOST IMPORTANT rule to remember about returning items?',
+      question: 'According to the Storage Policy, what is the consequence of disregarding storage expectations?',
       options: [
-        'Return them whenever you feel like it',
-        'Return them in the SAME location and condition as received, or your access will be removed',
-        'Just return them eventually',
-        'Return them in any condition as long as you return them'
+        'You receive a warning',
+        'Your spec team will lose access to storage',
+        'You pay a fine',
+        'Nothing happens'
       ],
       correct: 1
     }
@@ -185,9 +187,14 @@ const Quiz = () => {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">System Access Quiz</h1>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 mb-4">
             Answer all {questions.length} questions correctly (80% required to pass - need 8 out of 10 correct). This quiz must be passed once to access the system.
           </p>
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-3 mb-6 rounded">
+            <p className="text-sm text-blue-800 font-semibold">
+              📝 Questions 1-5: Website functionality | Questions 6-10: MSA Storage Policy & Agreement
+            </p>
+          </div>
 
           {submitted && (
             <div className={`mb-6 p-4 rounded-lg ${
