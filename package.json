@@ -14,7 +14,9 @@
     "start:production": "cd server && node server.js",
     "start:railway": "npm run build && npm run start:production",
     "render-build": "npm install && cd server && NODE_ENV=development npm install && cd ../client && NODE_ENV=development npm install && npm run build",
-    "render-start": "cd server && node server.js"
+    "render-start": "cd server && node server.js",
+    "test": "node test-all-features.js",
+    "test:api": "node test-all-features.js"
   },
   "keywords": [
     "inventory",
@@ -37,6 +39,7 @@
     "npm": ">=6.0.0"
   },
   "devDependencies": {
+    "axios": "^1.13.2",
     "concurrently": "^9.2.1"
   }
 }

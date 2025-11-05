@@ -220,17 +220,6 @@ const Dashboard = () => {
             <p className="text-gray-700 mb-3">
               Browse all available items and request checkout directly from the inventory page.
             </p>
-            <div className="bg-white rounded-lg p-4 border border-gray-200 mb-3">
-              <p className="text-sm font-medium text-gray-600 mb-2">Quick Access Link:</p>
-              <a
-                href="https://00cd5ca08599.ngrok-free.app/items"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-700 font-mono text-sm break-all underline"
-              >
-                https://00cd5ca08599.ngrok-free.app/items
-              </a>
-            </div>
             <Link
               to="/items"
               className="inline-flex items-center gap-2 btn-primary"

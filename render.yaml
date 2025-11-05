@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: msa-inventory-system
+    env: node
+    buildCommand: npm run render-build
+    startCommand: npm run render-start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: STORAGE_MODE
+        value: mongodb
+      - key: PORT
+        value: 10000
+      # Add these in Render dashboard:
+      # - MONGODB_URI (your MongoDB connection string)
+      # - JWT_SECRET (generate a random 32+ character string)
+      # - JWT_EXPIRES_IN (optional, default: 7d)
+
