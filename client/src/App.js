@@ -24,6 +24,8 @@ import PrintQRCodes from './pages/PrintQRCodes';
 import AdminPanel from './pages/AdminPanel';
 import StorageVisitPhoto from './pages/StorageVisitPhoto';
 import GuestRequest from './pages/GuestRequest';
+import Tutorial from './pages/Tutorial';
+import Quiz from './pages/Quiz';
 
 // Layout
 import Layout from './components/Layout';
@@ -31,7 +33,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, checkQuizStatus } = useAuth();
 
   if (loading) {
     return (
@@ -43,6 +45,15 @@ const ProtectedRoute = ({ children }) => {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Check quiz status - skip for tutorial and quiz pages
+  const currentPath = window.location.pathname;
+  if (currentPath !== '/tutorial' && currentPath !== '/quiz') {
+    const quizStatus = checkQuizStatus();
+    if (quizStatus.needsQuiz) {
+      return <Navigate to="/tutorial" replace />;
+    }
   }
 
   return <Layout>{children}</Layout>;
@@ -89,6 +100,24 @@ function App() {
           }
         />
         <Route path="/guest" element={<GuestRequest />} />
+
+        {/* Tutorial & Quiz Routes (no layout) */}
+        <Route
+          path="/tutorial"
+          element={
+            <ProtectedRoute>
+              <Tutorial />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quiz"
+          element={
+            <ProtectedRoute>
+              <Quiz />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Protected Routes */}
         <Route

@@ -29,13 +29,8 @@ const Dashboard = () => {
   useEffect(() => {
     fetchDashboardData();
     
-    // Check if user should see tour
-    if (user && !hasCompletedTour(user.role)) {
-      // Show tour after a short delay to let page load
-      setTimeout(() => {
-        setShowTour(true);
-      }, 1500);
-    }
+    // Quiz check is now handled in ProtectedRoute
+    // No need to check tour here anymore
     
     // Auto-refresh every 30 seconds
     const interval = setInterval(() => {

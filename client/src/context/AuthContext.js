@@ -111,6 +111,27 @@ export const AuthProvider = ({ children }) => {
     return user.role === role;
   };
 
+  // Check if quiz is passed and not expired (2 days = 48 hours)
+  const checkQuizStatus = () => {
+    try {
+      const quizData = localStorage.getItem('quiz_completed');
+      if (!quizData) return { passed: false, expired: false, needsQuiz: true };
+
+      const quiz = JSON.parse(quizData);
+      const expiresAt = new Date(quiz.expiresAt);
+      const now = new Date();
+
+      if (now > expiresAt) {
+        return { passed: false, expired: true, needsQuiz: true };
+      }
+
+      return { passed: quiz.passed, expired: false, needsQuiz: false, expiresAt: expiresAt };
+    } catch (error) {
+      console.error('Error checking quiz status:', error);
+      return { passed: false, expired: false, needsQuiz: true };
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -121,6 +142,7 @@ export const AuthProvider = ({ children }) => {
     updateUser,
     hasPermission,
     isRole,
+    checkQuizStatus,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
