@@ -16,8 +16,8 @@ const Tutorial = () => {
             Please read through all sections carefully.
           </p>
           <p className="text-gray-600">
-            After completing this tutorial, you'll need to pass a quiz to access the system. 
-            You'll need to retake the quiz every 2 days to maintain access.
+            After completing this tutorial, you'll need to pass a comprehensive quiz to access the system. 
+            This quiz must be passed once to gain permanent access.
           </p>
         </div>
       )
@@ -200,8 +200,8 @@ const Tutorial = () => {
           <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
             <p className="text-blue-800 font-semibold mb-2">Important Reminders:</p>
             <ul className="list-disc list-inside space-y-1 text-blue-700 ml-4">
-              <li>You must pass the quiz to access the system</li>
-              <li>You'll need to retake the quiz every 2 days</li>
+              <li>You must pass the quiz (80% score) to access the system</li>
+              <li>This quiz must be passed once - it's permanent</li>
               <li>Always return items in the same location and condition</li>
               <li>Upload photos after approval before closing transactions</li>
               <li>Check your notifications regularly</li>

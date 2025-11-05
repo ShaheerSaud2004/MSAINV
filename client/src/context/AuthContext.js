@@ -111,24 +111,23 @@ export const AuthProvider = ({ children }) => {
     return user.role === role;
   };
 
-  // Check if quiz is passed and not expired (2 days = 48 hours)
+  // Check if quiz is passed (permanent - no expiration)
   const checkQuizStatus = () => {
     try {
       const quizData = localStorage.getItem('quiz_completed');
-      if (!quizData) return { passed: false, expired: false, needsQuiz: true };
+      if (!quizData) return { passed: false, needsQuiz: true };
 
       const quiz = JSON.parse(quizData);
-      const expiresAt = new Date(quiz.expiresAt);
-      const now = new Date();
-
-      if (now > expiresAt) {
-        return { passed: false, expired: true, needsQuiz: true };
+      
+      // Check if quiz was passed
+      if (quiz.passed && quiz.permanent) {
+        return { passed: true, needsQuiz: false };
       }
 
-      return { passed: quiz.passed, expired: false, needsQuiz: false, expiresAt: expiresAt };
+      return { passed: false, needsQuiz: true };
     } catch (error) {
       console.error('Error checking quiz status:', error);
-      return { passed: false, expired: false, needsQuiz: true };
+      return { passed: false, needsQuiz: true };
     }
   };
 
