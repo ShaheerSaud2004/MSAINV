@@ -6,11 +6,10 @@ import {
   ChartBarIcon,
   UserGroupIcon,
   CubeIcon,
-  ClockIcon,
   ArrowTrendingUpIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const Analytics = () => {
   const [loading, setLoading] = useState(true);
@@ -18,8 +17,6 @@ const Analytics = () => {
   const [userActivity, setUserActivity] = useState([]);
   const [overduePatterns, setOverduePatterns] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
-
-  const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444'];
 
   useEffect(() => {
     fetchAnalytics();

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import { XMarkIcon, ChevronRightIcon, ChevronLeftIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 
 const Tour = ({ steps, onComplete, onSkip }) => {
