@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { qrAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import { QrCodeIcon, CameraIcon } from '@heroicons/react/24/outline';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 
 const QRScanner = () => {
   const [scanning, setScanning] = useState(false);
@@ -22,8 +23,10 @@ const QRScanner = () => {
   });
   const [loading, setLoading] = useState(false);
   const [manualQRCode, setManualQRCode] = useState('');
+  const [scanMode, setScanMode] = useState('both'); // 'qr', 'barcode', 'both'
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const html5QrCodeRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,21 +37,63 @@ const QRScanner = () => {
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
-      });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-        setScanning(true);
-      }
+      const html5QrCode = new Html5Qrcode('reader');
+      html5QrCodeRef.current = html5QrCode;
+
+      // Configure what formats to scan
+      const formatsToSupport = scanMode === 'qr' 
+        ? [Html5QrcodeSupportedFormats.QR_CODE]
+        : scanMode === 'barcode'
+        ? [
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E
+          ]
+        : [
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E
+          ];
+
+      await html5QrCode.start(
+        { facingMode: 'environment' },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          formatsToSupport: formatsToSupport
+        },
+        (decodedText, decodedResult) => {
+          // Successfully scanned
+          handleScanSuccess(decodedText, decodedResult);
+        },
+        (errorMessage) => {
+          // Scan error - ignore
+        }
+      );
+      setScanning(true);
     } catch (error) {
       console.error('Camera error:', error);
-      toast.error('Unable to access camera. Please check permissions or enter QR code manually.');
+      toast.error('Unable to access camera. Please check permissions or enter code manually.');
     }
   };
 
-  const stopCamera = () => {
+  const stopCamera = async () => {
+    if (html5QrCodeRef.current) {
+      try {
+        await html5QrCodeRef.current.stop();
+        await html5QrCodeRef.current.clear();
+      } catch (error) {
+        console.error('Error stopping scanner:', error);
+      }
+      html5QrCodeRef.current = null;
+    }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
@@ -57,6 +102,29 @@ const QRScanner = () => {
       videoRef.current.srcObject = null;
     }
     setScanning(false);
+  };
+
+  const handleScanSuccess = async (decodedText, decodedResult) => {
+    stopCamera();
+    setLoading(true);
+    
+    try {
+      // Determine if it's a QR code or barcode
+      const isQRCode = decodedResult.result.format?.formatName === 'QR_CODE';
+      
+      if (isQRCode) {
+        // Try to process as QR code
+        await processQRCode(decodedText);
+      } else {
+        // Process as barcode
+        await processBarcode(decodedText);
+      }
+    } catch (error) {
+      console.error('Scan processing error:', error);
+      toast.error('Error processing scanned code');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleManualSubmit = async (e) => {
@@ -69,7 +137,6 @@ const QRScanner = () => {
   };
 
   const processQRCode = async (qrCode) => {
-    setLoading(true);
     try {
       // Parse QR code data
       let qrData;
@@ -86,7 +153,6 @@ const QRScanner = () => {
         const foundItem = response.data.data;
         setItem(foundItem);
         setScannedData(qrData);
-        stopCamera();
         
         // Check if item is available for checkout
         if (foundItem.isCheckoutable && foundItem.availableQuantity > 0) {
@@ -102,8 +168,29 @@ const QRScanner = () => {
     } catch (error) {
       console.error('QR scan error:', error);
       toast.error(error.response?.data?.message || 'Item not found');
-    } finally {
-      setLoading(false);
+    }
+  };
+
+  const processBarcode = async (barcode) => {
+    try {
+      // Fetch item by barcode
+      const response = await qrAPI.getItemByBarcode(barcode);
+      if (response.data.success) {
+        const foundItem = response.data.data;
+        setItem(foundItem);
+        setScannedData({ barcode: barcode, type: 'item' });
+        toast.success('Barcode scanned! Item found.');
+        
+        // Check if item is available for checkout
+        if (foundItem.isCheckoutable && foundItem.availableQuantity > 0) {
+          setTimeout(() => {
+            navigate(`/checkout/${foundItem._id || foundItem.id}`);
+          }, 1000);
+        }
+      }
+    } catch (error) {
+      console.error('Barcode scan error:', error);
+      toast.error(error.response?.data?.message || 'Item not found with this barcode');
     }
   };
 
@@ -197,12 +284,7 @@ const QRScanner = () => {
 
           {scanning && (
             <div>
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                className="w-full rounded-lg bg-black"
-              />
+              <div id="reader" className="w-full rounded-lg bg-black min-h-[300px]"></div>
               <button
                 onClick={stopCamera}
                 className="btn-secondary w-full mt-4"
@@ -210,29 +292,57 @@ const QRScanner = () => {
                 Stop Camera
               </button>
               <p className="text-sm text-gray-600 text-center mt-2">
-                Position QR code in front of camera
+                Position {scanMode === 'qr' ? 'QR code' : scanMode === 'barcode' ? 'barcode' : 'QR code or barcode'} in front of camera
               </p>
             </div>
           )}
 
-          {/* Manual QR Code Entry */}
+          {/* Scan Mode Selection */}
+          {!scanning && (
+            <div className="mt-4 pt-4 border-t">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Scan Mode
+              </label>
+              <select
+                className="input-field"
+                value={scanMode}
+                onChange={(e) => setScanMode(e.target.value)}
+              >
+                <option value="both">QR Codes & Barcodes</option>
+                <option value="qr">QR Codes Only</option>
+                <option value="barcode">Barcodes Only</option>
+              </select>
+            </div>
+          )}
+
+          {/* Manual QR Code / Barcode Entry */}
           <div className="mt-6 pt-6 border-t">
-            <h3 className="font-semibold mb-3">Enter QR Code Manually</h3>
+            <h3 className="font-semibold mb-3">Enter Code Manually</h3>
             <form onSubmit={handleManualSubmit} className="space-y-3">
               <input
                 type="text"
-                placeholder="Enter QR code (e.g., ITEM_xxxxx)"
+                placeholder="Enter QR code or barcode"
                 className="input-field"
                 value={manualQRCode}
                 onChange={(e) => setManualQRCode(e.target.value)}
               />
-              <button
-                type="submit"
-                disabled={loading}
-                className="btn-primary w-full disabled:opacity-50"
-              >
-                {loading ? 'Processing...' : 'Look Up Item'}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => processBarcode(manualQRCode)}
+                  disabled={loading || !manualQRCode.trim()}
+                  className="btn-secondary flex-1 disabled:opacity-50"
+                >
+                  Lookup Barcode
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn-primary flex-1 disabled:opacity-50"
+                >
+                  {loading ? 'Processing...' : 'Lookup QR Code'}
+                </button>
+              </div>
             </form>
           </div>
         </div>

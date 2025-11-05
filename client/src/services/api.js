@@ -105,6 +105,7 @@ export const qrAPI = {
   generate: (itemId) => api.get(`/qr/generate/${itemId}`),
   scan: (data) => api.post('/qr/scan', data),
   getItemByQRCode: (qrCode) => api.get(`/qr/item/${qrCode}`),
+  getItemByBarcode: (barcode) => api.get(`/qr/barcode/${barcode}`),
 };
 
 // Guest Requests API (public submit, auth for review)

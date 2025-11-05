@@ -130,6 +130,11 @@ class JSONStorageService {
     return items.find(i => i.qrCode === qrCode);
   }
 
+  async findItemByBarcode(barcode) {
+    const items = await this.readCollection('items');
+    return items.find(i => i.barcode === barcode);
+  }
+
   async createItem(itemData) {
     const items = await this.readCollection('items');
     const newItem = {
@@ -370,6 +375,11 @@ class MongoDBStorageService {
   async findItemByQRCode(qrCode) {
     const Item = require('../models/Item');
     return await Item.findOne({ qrCode });
+  }
+
+  async findItemByBarcode(barcode) {
+    const Item = require('../models/Item');
+    return await Item.findOne({ barcode });
   }
 
   async createItem(itemData) {

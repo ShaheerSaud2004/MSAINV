@@ -452,5 +452,36 @@ router.get('/item/:qrCode', async (req, res) => {
   }
 });
 
+// @route   GET /api/qr/barcode/:barcode
+// @desc    Get item details by barcode
+// @access  Public (for quick lookup)
+router.get('/barcode/:barcode', async (req, res) => {
+  try {
+    const { barcode } = req.params;
+    const storageService = getStorageService();
+
+    const item = await storageService.findItemByBarcode(barcode);
+    
+    if (!item) {
+      return res.status(404).json({
+        success: false,
+        message: 'Item not found with this barcode'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: item
+    });
+  } catch (error) {
+    console.error('Get item by barcode error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error retrieving item',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
 

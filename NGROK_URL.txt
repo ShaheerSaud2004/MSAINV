@@ -1,13 +1,14 @@
 🌐 NGROK TUNNEL ACTIVE
 
-Public URL: https://efb9a736b786.ngrok-free.app
+Public URL: https://00cd5ca08599.ngrok-free.app
 
 ✅ Server Status: Running
 ✅ Port: 3022
-✅ Environment: Production
+✅ Ngrok Status: Active
+✅ Environment: Development
 
 📝 SHARE THIS URL:
-https://efb9a736b786.ngrok-free.app
+https://00cd5ca08599.ngrok-free.app
 
 ⚠️ IMPORTANT NOTES:
 - This URL is active as long as ngrok is running
@@ -17,8 +18,11 @@ https://efb9a736b786.ngrok-free.app
 
 🔧 TO STOP:
 - Press Ctrl+C in the terminal running ngrok
-- Or stop the server process
+- Or run: pkill -f ngrok
 
 📊 TO VIEW NGROK DASHBOARD:
 http://localhost:4040
 
+🔍 TO CHECK STATUS:
+- Server: curl http://localhost:3022/api/health
+- Ngrok: curl http://localhost:4040/api/tunnels
