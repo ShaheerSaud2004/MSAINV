@@ -8,11 +8,12 @@ services:
       - key: NODE_ENV
         value: production
       - key: STORAGE_MODE
-        value: mongodb
+        value: supabase
       - key: PORT
         value: 10000
       # Add these in Render dashboard:
-      # - MONGODB_URI (your MongoDB connection string)
+      # - SUPABASE_URL (your Supabase URL)
+      # - SUPABASE_ANON_KEY (your Supabase anon key)
       # - JWT_SECRET (generate a random 32+ character string)
       # - JWT_EXPIRES_IN (optional, default: 7d)
 
