@@ -8,11 +8,29 @@ const bcrypt = require('bcryptjs');
 
 // @route   GET /api/users
 // @desc    Get all users
-// @access  Private (admin/manager)
-router.get('/', protect, authorize('admin', 'manager'), async (req, res) => {
+// @access  Private (admin/manager or self)
+router.get('/', protect, async (req, res) => {
   try {
     const { role = '', status = '' } = req.query;
     const storageService = getStorageService();
+    
+    // Only admins and managers can see all users
+    if (req.user.role !== 'admin' && req.user.role !== 'manager') {
+      // Regular users can only see themselves
+      const currentUserId = req.user._id || req.user.id;
+      const user = await storageService.findUserById(currentUserId);
+      if (user) {
+        const { password, ...userWithoutPassword } = user;
+        return res.json({
+          success: true,
+          data: [userWithoutPassword]
+        });
+      }
+      return res.json({
+        success: true,
+        data: []
+      });
+    }
     
     const query = {};
     if (role) query.role = role;
