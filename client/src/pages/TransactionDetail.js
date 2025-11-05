@@ -388,10 +388,10 @@ const TransactionDetail = () => {
                     {visit.photos.map((photo, photoIndex) => (
                       <div key={photoIndex} className="relative group">
                         <img
-                          src={`${process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3022'}${photo.url}`}
+                          src={photo.url.startsWith('http') ? photo.url : photo.url}
                           alt={photo.caption || `Visit photo ${photoIndex + 1}`}
                           className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 group-hover:border-blue-500 transition-all cursor-pointer"
-                          onClick={() => window.open(`${process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3022'}${photo.url}`, '_blank')}
+                          onClick={() => window.open(photo.url.startsWith('http') ? photo.url : photo.url, '_blank')}
                         />
                         {photo.caption && (
                           <p className="text-xs text-gray-600 mt-1 truncate">{photo.caption}</p>

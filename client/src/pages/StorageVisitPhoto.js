@@ -78,7 +78,9 @@ const StorageVisitPhoto = () => {
       });
 
       const token = localStorage.getItem('token');
-      const API_URL = process.env.NODE_ENV === 'production' 
+      // Use relative URL in production, localhost in development
+      const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+      const API_URL = isProduction
         ? '/api'
         : process.env.REACT_APP_API_URL || 'http://localhost:3022/api';
 

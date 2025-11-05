@@ -1,7 +1,9 @@
 import axios from 'axios';
 
-// In production (Railway), use relative URL. In development, use localhost.
-const API_URL = process.env.NODE_ENV === 'production' 
+// Determine API URL - use relative URL in production, localhost in development
+// Check if we're in production by checking if we're not on localhost
+const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+const API_URL = isProduction
   ? '/api'  // Relative URL for production (same domain)
   : process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
 
