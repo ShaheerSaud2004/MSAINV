@@ -16,17 +16,29 @@
 **Description:** MongoDB connection string  
 **Example:** `mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/msa-inventory?retryWrites=true&w=majority`  
 **Format:** MongoDB Atlas connection string  
-**Note:** Get this from MongoDB Atlas dashboard
+**Note:** Get this from MongoDB Atlas dashboard. Not needed if using Supabase.
+
+### 2a. `SUPABASE_URL` (for Supabase)
+**Required:** Yes (if using Supabase)  
+**Description:** Supabase project URL  
+**Example:** `https://trikujcotjghuhppxtkj.supabase.co`  
+**Note:** Get this from Supabase dashboard → Settings → API
+
+### 2b. `SUPABASE_ANON_KEY` (for Supabase)
+**Required:** Yes (if using Supabase)  
+**Description:** Supabase anonymous/public API key  
+**Example:** `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`  
+**Note:** Get this from Supabase dashboard → Settings → API → anon public key
 
 ---
 
 ### 3. `STORAGE_MODE`
 **Required:** Recommended  
 **Description:** Storage backend to use  
-**Options:** `mongodb` or `json`  
+**Options:** `mongodb`, `json`, or `supabase`  
 **Default:** `mongodb`  
-**Example:** `mongodb`  
-**Note:** Use `mongodb` for production, `json` for development/testing
+**Example:** `supabase`  
+**Note:** Use `supabase` for Supabase, `mongodb` for MongoDB, or `json` for development/testing
 
 ---
 
@@ -162,12 +174,23 @@
 
 ## ✅ Minimum Required for Deployment
 
-For a basic deployment, you only need:
+For a basic deployment with MongoDB, you need:
 
 ```bash
 NODE_ENV=production
 STORAGE_MODE=mongodb
 MONGODB_URI=your-mongodb-connection-string
+JWT_SECRET=your-super-secret-key-min-32-characters-long
+PORT=10000
+```
+
+For Supabase deployment:
+
+```bash
+NODE_ENV=production
+STORAGE_MODE=supabase
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key-here
 JWT_SECRET=your-super-secret-key-min-32-characters-long
 PORT=10000
 ```

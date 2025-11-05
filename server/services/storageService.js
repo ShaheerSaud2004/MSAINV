@@ -468,8 +468,26 @@ class MongoDBStorageService {
   }
 }
 
+// Supabase Storage Service
+let SupabaseStorageService;
+try {
+  SupabaseStorageService = require('./supabaseStorageService');
+} catch (error) {
+  console.warn('Supabase storage service not available:', error.message);
+}
+
 // Factory function to get appropriate storage service
 function getStorageService() {
+  if (process.env.STORAGE_MODE === 'supabase') {
+    if (!SupabaseStorageService) {
+      throw new Error('Supabase storage mode requires @supabase/supabase-js package');
+    }
+    if (!global.supabaseStorageService) {
+      global.supabaseStorageService = new SupabaseStorageService();
+    }
+    return global.supabaseStorageService;
+  }
+  
   if (process.env.STORAGE_MODE === 'json') {
     if (!global.jsonStorageService) {
       global.jsonStorageService = new JSONStorageService();

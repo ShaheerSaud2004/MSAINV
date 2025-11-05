@@ -1,0 +1,20 @@
+# Copy these into Render's Environment Variables section:
+
+# For Supabase (Current Setup):
+NODE_ENV=production
+STORAGE_MODE=supabase
+SUPABASE_URL=https://trikujcotjghuhppxtkj.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRyaWt1amNvdGpnaHVocHB4dGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNzM0MTYsImV4cCI6MjA3Nzk0OTQxNn0.wzznGzB5crndfFMP_v56x3K69PlUXteB-Xt6RvYJon4
+JWT_SECRET=61010f539b1a1c0d81382a6c3ef938874543deb7e2ce36a4011420637d5eaa32
+JWT_EXPIRES_IN=7d
+PORT=10000
+
+# Alternative: For MongoDB (if you want to switch back):
+# NODE_ENV=production
+# STORAGE_MODE=mongodb
+# MONGODB_URI=your-mongodb-connection-string-here
+
+# INSTRUCTIONS:
+# 1. Supabase is already configured above - just copy these values
+# 2. If using MongoDB instead, uncomment the MongoDB lines and remove Supabase lines
+
