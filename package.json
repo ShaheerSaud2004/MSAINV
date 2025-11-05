@@ -9,7 +9,7 @@
     "client": "cd client && npm start",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "install-all": "npm install && cd server && npm install && cd ../client && npm install",
-    "vercel-build": "cd client && npm install && npm run build",
+    "vercel-build": "npm install && cd server && npm install && cd ../client && npm install && npm run build",
     "build": "npm install && cd server && npm install && cd ../client && npm install && npm run build",
     "start:production": "cd server && node server.js",
     "start:railway": "npm run build && npm run start:production",

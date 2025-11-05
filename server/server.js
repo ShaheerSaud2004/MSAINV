@@ -31,9 +31,11 @@ connectDatabase();
 // Middleware
 app.use(helmet()); // Security headers
 
-// CORS - Allow Railway or local development
+// CORS - Allow Railway, Vercel, or local development
 const allowedOrigins = [
   process.env.CLIENT_URL,
+  process.env.VERCEL_URL,
+  process.env.NEXT_PUBLIC_VERCEL_URL,
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:3021', // Custom development port
@@ -160,14 +162,15 @@ cron.schedule('0 9 * * *', async () => {
   }
 });
 
-// Start server
-const PORT = process.env.PORT || 5001;
-const server = app.listen(PORT, '0.0.0.0', () => {
-  const baseUrl = process.env.NODE_ENV === 'production' 
-    ? (process.env.RENDER_EXTERNAL_URL || `https://your-app.onrender.com`)
-    : `http://localhost:${PORT}`;
-  
-  console.log(`
+// Start server (skip if running on Vercel)
+if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
+  const PORT = process.env.PORT || 5001;
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? (process.env.RENDER_EXTERNAL_URL || process.env.VERCEL_URL || `https://your-app.onrender.com`)
+      : `http://localhost:${PORT}`;
+    
+    console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
 ║   MSA Inventory Management System                        ║
@@ -178,8 +181,9 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 ║   API Health: ${baseUrl}/api/health           ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
-  `);
-});
+    `);
+  });
+}
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err, promise) => {
