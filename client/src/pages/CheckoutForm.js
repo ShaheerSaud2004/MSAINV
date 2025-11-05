@@ -4,7 +4,8 @@ import { itemsAPI, transactionsAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { format } from 'date-fns';
 
 const CheckoutForm = () => {
   const { id } = useParams();
@@ -13,6 +14,9 @@ const CheckoutForm = () => {
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showWhatsAppMessage, setShowWhatsAppMessage] = useState(false);
+  const [createdTransaction, setCreatedTransaction] = useState(null);
+  const [copied, setCopied] = useState(false);
   const [formData, setFormData] = useState({
     // User Information
     fullName: user?.name || '',
@@ -119,8 +123,9 @@ ${formData.notes ? `\nAdditional notes: ${formData.notes}` : ''}
       const response = await transactionsAPI.checkout(checkoutData);
 
       if (response.data.success) {
+        setCreatedTransaction(response.data.data);
+        setShowWhatsAppMessage(true);
         toast.success(response.data.message);
-        navigate('/transactions');
       }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Checkout failed');
@@ -143,6 +148,32 @@ ${formData.notes ? `\nAdditional notes: ${formData.notes}` : ''}
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const minDate = tomorrow.toISOString().split('T')[0];
+
+  // Generate WhatsApp message
+  const generateWhatsAppMessage = () => {
+    if (!item || !formData.fullName) return '';
+    
+    const itemName = item.name;
+    const quantity = formData.quantity;
+    const purpose = formData.purpose;
+    const eventDate = formData.expectedReturnDate 
+      ? format(new Date(formData.expectedReturnDate), 'MMMM dd, yyyy')
+      : 'the requested date';
+    
+    return `Hi Maimuna, my name is ${formData.fullName}${formData.team ? ` from ${formData.team}` : ''}, and I want to checkout ${quantity} ${itemName}${quantity > 1 ? 's' : ''} for ${purpose} on ${eventDate}. I want to check it out and go to storage. Please review the request and let me know.`;
+  };
+
+  const handleCopyToClipboard = async () => {
+    const message = generateWhatsAppMessage();
+    try {
+      await navigator.clipboard.writeText(message);
+      setCopied(true);
+      toast.success('Message copied to clipboard!');
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast.error('Failed to copy. Please select and copy manually.');
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -434,6 +465,52 @@ ${formData.notes ? `\nAdditional notes: ${formData.notes}` : ''}
           </button>
         </div>
       </form>
+
+      {/* WhatsApp Message Modal */}
+      {showWhatsAppMessage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">📱 Copy WhatsApp Message</h2>
+            <p className="text-gray-600 mb-4">
+              Copy this message and send it to Maimuna on the Storage WhatsApp Chat:
+            </p>
+            
+            <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4 mb-4">
+              <p className="text-gray-800 whitespace-pre-wrap font-mono text-sm">
+                {generateWhatsAppMessage()}
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleCopyToClipboard}
+                className="flex-1 btn-primary flex items-center justify-center gap-2"
+              >
+                {copied ? (
+                  <>
+                    <CheckIcon className="w-5 h-5" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <ClipboardDocumentIcon className="w-5 h-5" />
+                    Copy to Clipboard
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  setShowWhatsAppMessage(false);
+                  navigate(createdTransaction ? `/transactions/${createdTransaction._id || createdTransaction.id}` : '/transactions');
+                }}
+                className="btn-secondary"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

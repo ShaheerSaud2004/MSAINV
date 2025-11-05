@@ -4,16 +4,17 @@ import { transactionsAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { ArrowLeftIcon, CameraIcon, PhotoIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, CameraIcon, PhotoIcon, CheckCircleIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 
 const TransactionDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermission, user } = useAuth();
   const [transaction, setTransaction] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetchTransaction();
@@ -78,6 +79,36 @@ const TransactionDetail = () => {
 
   if (!transaction) return null;
 
+  // Generate WhatsApp message for pending transactions
+  const generateWhatsAppMessage = () => {
+    if (!transaction || transaction.status !== 'pending') return '';
+    
+    const itemName = transaction.item?.name || 'the item';
+    const quantity = transaction.quantity;
+    const purpose = transaction.purpose || 'my event';
+    const userName = transaction.user?.name || user?.name || 'me';
+    const team = transaction.user?.team || '';
+    const eventDate = transaction.expectedReturnDate 
+      ? format(new Date(transaction.expectedReturnDate), 'MMMM dd, yyyy')
+      : 'the requested date';
+    
+    return `Hi Maimuna, my name is ${userName}${team ? ` from ${team}` : ''}, and I want to checkout ${quantity} ${itemName}${quantity > 1 ? 's' : ''} for ${purpose} on ${eventDate}. I want to check it out and go to storage. Please review the request and let me know.`;
+  };
+
+  const handleCopyToClipboard = async () => {
+    const message = generateWhatsAppMessage();
+    if (!message) return;
+    
+    try {
+      await navigator.clipboard.writeText(message);
+      setCopied(true);
+      toast.success('WhatsApp message copied to clipboard!');
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast.error('Failed to copy. Please select and copy manually.');
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -116,14 +147,35 @@ const TransactionDetail = () => {
             <h1 className="text-2xl font-bold text-gray-900">Transaction #{transaction.transactionNumber}</h1>
             <p className="text-gray-600 mt-1">Type: {transaction.type}</p>
           </div>
-          <span className={`badge ${
-            transaction.status === 'active' ? 'badge-success' :
-            transaction.status === 'overdue' ? 'badge-danger' :
-            transaction.status === 'pending' ? 'badge-warning' :
-            'badge-gray'
-          } text-lg px-4 py-2`}>
-            {transaction.status}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className={`badge ${
+              transaction.status === 'active' ? 'badge-success' :
+              transaction.status === 'overdue' ? 'badge-danger' :
+              transaction.status === 'pending' ? 'badge-warning' :
+              'badge-gray'
+            } text-lg px-4 py-2`}>
+              {transaction.status}
+            </span>
+            {transaction.status === 'pending' && (
+              <button
+                onClick={handleCopyToClipboard}
+                className="btn-primary flex items-center gap-2"
+                title="Copy WhatsApp message"
+              >
+                {copied ? (
+                  <>
+                    <CheckIcon className="w-5 h-5" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <ClipboardDocumentIcon className="w-5 h-5" />
+                    Copy WhatsApp Message
+                  </>
+                )}
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -194,6 +246,46 @@ const TransactionDetail = () => {
         {transaction.isOverdue && (
           <div className="mt-6 p-4 bg-red-50 border-l-4 border-red-500 rounded">
             <p className="text-red-800 font-semibold">⚠️ This transaction is overdue!</p>
+          </div>
+        )}
+
+        {/* WhatsApp Message for Pending Requests */}
+        {transaction.status === 'pending' && (
+          <div className="mt-6 p-5 bg-gradient-to-r from-green-50 via-blue-50 to-indigo-50 border-l-4 border-green-500 rounded-lg">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <ClipboardDocumentIcon className="w-8 h-8 text-green-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                  📱 Next Step: Send WhatsApp Message
+                </h3>
+                <p className="text-gray-700 mb-3">
+                  After submitting your request on the website, you must notify Maimuna on the Storage WhatsApp Chat. Copy the message below and send it to her.
+                </p>
+                <div className="bg-white rounded-lg p-4 border-2 border-gray-200 mb-3">
+                  <p className="text-gray-800 whitespace-pre-wrap font-mono text-sm">
+                    {generateWhatsAppMessage()}
+                  </p>
+                </div>
+                <button
+                  onClick={handleCopyToClipboard}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  {copied ? (
+                    <>
+                      <CheckIcon className="w-5 h-5" />
+                      Copied to Clipboard!
+                    </>
+                  ) : (
+                    <>
+                      <ClipboardDocumentIcon className="w-5 h-5" />
+                      Copy Message
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
