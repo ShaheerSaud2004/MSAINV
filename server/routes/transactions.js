@@ -343,6 +343,14 @@ router.post('/:id/return', protect, checkPermission('canReturn'), [
       });
     }
 
+    // Check if storage photos are uploaded (required before closing)
+    if (transaction.requiresStoragePhoto && !transaction.storagePhotoUploaded) {
+      return res.status(400).json({
+        success: false,
+        message: 'You must upload storage visit photos before closing this transaction. Please upload photos first.'
+      });
+    }
+
     const now = new Date();
     const expectedReturn = new Date(transaction.expectedReturnDate);
     const isOverdue = now > expectedReturn;
@@ -478,8 +486,8 @@ router.post('/:id/approve', protect, checkPermission('canApprove'), async (req, 
     await createNotification({
       recipient: transactionUserId,
       type: 'approval_approved',
-      title: 'Checkout Approved',
-      message: `Your checkout request has been approved by ${req.user.name}`,
+      title: 'Checkout Approved - Photos Required!',
+      message: `Your checkout request has been approved by ${req.user.name}. IMPORTANT: You MUST upload storage visit photos before closing this transaction.`,
       priority: 'high',
       channels: {
         email: true,
@@ -490,7 +498,7 @@ router.post('/:id/approve', protect, checkPermission('canApprove'), async (req, 
       relatedTransaction: req.params.id,
       relatedItem: itemId,
       actionUrl: `/transactions/${req.params.id}`,
-      actionText: 'View Transaction'
+      actionText: 'Upload Photos Now'
     });
 
     res.json({

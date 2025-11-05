@@ -92,7 +92,21 @@ const TransactionDetail = () => {
           </div>
         )}
         {transaction.status === 'active' && (
-          <button onClick={handleReturn} className="btn-success">Mark as Returned</button>
+          <button 
+            onClick={() => {
+              if (!transaction.storagePhotoUploaded) {
+                toast.error('You must upload storage visit photos before closing this transaction!', {
+                  autoClose: 5000
+                });
+                return;
+              }
+              handleReturn();
+            }} 
+            className="btn-success"
+            disabled={!transaction.storagePhotoUploaded}
+          >
+            {transaction.storagePhotoUploaded ? 'Mark as Returned' : 'Upload Photos First'}
+          </button>
         )}
       </div>
 
@@ -182,6 +196,36 @@ const TransactionDetail = () => {
             <p className="text-red-800 font-semibold">⚠️ This transaction is overdue!</p>
           </div>
         )}
+
+        {/* REQUIRED PHOTO ALERT - Show after approval */}
+        {(transaction.status === 'active' || transaction.status === 'approved') && 
+         !transaction.storagePhotoUploaded && (
+          <div className="mt-6 p-6 bg-gradient-to-r from-yellow-50 via-orange-50 to-red-50 border-l-4 border-orange-500 rounded-lg shadow-lg animate-pulse">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <CameraIcon className="w-10 h-10 text-orange-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-orange-900 mb-2">
+                  ⚠️ REQUIRED: Upload Storage Visit Photos
+                </h3>
+                <p className="text-orange-800 font-semibold mb-3">
+                  You MUST upload photos of your storage visit before closing out this transaction.
+                </p>
+                <p className="text-sm text-orange-700 mb-4">
+                  This is required for safety, accountability, and proper documentation. The transaction cannot be completed until photos are uploaded.
+                </p>
+                <Link
+                  to={`/storage-visit/${id}`}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold rounded-lg hover:from-orange-600 hover:to-red-600 shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+                >
+                  <CameraIcon className="w-6 h-6" />
+                  Upload Photos Now
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Storage Visit Photos Section */}
@@ -189,15 +233,25 @@ const TransactionDetail = () => {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Storage Visit Documentation</h2>
-            <p className="text-gray-600 mt-1">Photos taken during storage visits for safety tracking</p>
+            <p className="text-gray-600 mt-1">
+              {(transaction.status === 'active' || transaction.status === 'approved') && !transaction.storagePhotoUploaded
+                ? '⚠️ REQUIRED: Upload photos before closing this transaction'
+                : 'Photos taken during storage visits for safety tracking'}
+            </p>
           </div>
           {(transaction.status === 'active' || transaction.status === 'approved' || transaction.status === 'pending') && (
             <Link
               to={`/storage-visit/${id}`}
-              className="btn-primary flex items-center gap-2"
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold shadow-md hover:shadow-lg transition-all ${
+                !transaction.storagePhotoUploaded && (transaction.status === 'active' || transaction.status === 'approved')
+                  ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600 animate-pulse'
+                  : 'btn-primary'
+              }`}
             >
               <CameraIcon className="w-5 h-5" />
-              Upload Photos
+              {!transaction.storagePhotoUploaded && (transaction.status === 'active' || transaction.status === 'approved')
+                ? '⚠️ Upload Required Photos'
+                : 'Upload Photos'}
             </Link>
           )}
         </div>
