@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { authAPI } from '../services/api';
 import { toast } from 'react-toastify';
+import { useAuth } from '../context/AuthContext';
+import { resetTour } from '../utils/tourConfig';
+import { PlayIcon } from '@heroicons/react/24/outline';
 
 const Settings = () => {
+  const { user } = useAuth();
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -43,9 +47,31 @@ const Settings = () => {
     }
   };
 
+  const handleRestartTour = () => {
+    if (user) {
+      resetTour(user.role);
+      toast.success('Tour reset! Refresh the page or go to Dashboard to see the tour again.');
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
+
+      {/* Tour Settings */}
+      <div className="card">
+        <h3 className="font-semibold text-lg mb-4">Guided Tour</h3>
+        <p className="text-gray-600 mb-4">
+          Restart the interactive tour to learn about all features of the inventory system.
+        </p>
+        <button
+          onClick={handleRestartTour}
+          className="btn-primary flex items-center gap-2"
+        >
+          <PlayIcon className="w-5 h-5" />
+          Restart Guided Tour
+        </button>
+      </div>
 
       <div className="card">
         <h3 className="font-semibold text-lg mb-4">Change Password</h3>
