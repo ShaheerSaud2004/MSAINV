@@ -69,7 +69,18 @@ const Quiz = () => {
       ],
       correct: 1
     },
-    // Storage Policy Questions (6-10)
+    {
+      id: 6,
+      question: 'What is the FIRST step when you want to take something out of storage?',
+      options: [
+        'Go directly to storage and take it',
+        'Notify Maimuna on WhatsApp first',
+        'Request it on the website/app first, then notify Maimuna on WhatsApp that you sent a request',
+        'Call the manager to get permission'
+      ],
+      correct: 2
+    },
+    // Storage Policy Questions (7-11)
     {
       id: 6,
       question: 'According to the MSA Storage Policy, where is the on-campus storage location?',
@@ -150,10 +161,11 @@ const Quiz = () => {
 
     const percentage = (correct / questions.length) * 100;
     const minPassingScore = 80;
+    const minCorrect = Math.ceil(questions.length * 0.8);
 
     setScore(percentage);
     setSubmitted(true);
-    setPassed(percentage >= minPassingScore);
+    setPassed(percentage >= minPassingScore && correct >= minCorrect);
 
     if (percentage >= minPassingScore) {
       // Save quiz completion
@@ -188,11 +200,11 @@ const Quiz = () => {
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">System Access Quiz</h1>
           <p className="text-gray-600 mb-4">
-            Answer all {questions.length} questions correctly (80% required to pass - need 8 out of 10 correct). This quiz must be passed once to access the system.
+            Answer all {questions.length} questions correctly (80% required to pass - need {Math.ceil(questions.length * 0.8)} out of {questions.length} correct). This quiz must be passed once to access the system.
           </p>
           <div className="bg-blue-50 border-l-4 border-blue-500 p-3 mb-6 rounded">
             <p className="text-sm text-blue-800 font-semibold">
-              📝 Questions 1-5: Website functionality | Questions 6-10: MSA Storage Policy & Agreement
+              📝 Questions 1-6: Website functionality | Questions 7-11: MSA Storage Policy & Agreement
             </p>
           </div>
 
