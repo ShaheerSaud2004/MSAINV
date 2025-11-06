@@ -18,6 +18,31 @@ class SupabaseStorageService {
     return uuidv4();
   }
 
+  // Helper to convert Supabase item to camelCase format
+  normalizeItem(item) {
+    if (!item) return null;
+    return {
+      ...item,
+      // ID fields
+      _id: item.id,
+      id: item.id,
+      // Convert snake_case to camelCase
+      qrCode: item.qr_code || item.qrCode,
+      subCategory: item.sub_category || item.subCategory,
+      totalQuantity: item.total_quantity ?? item.totalQuantity ?? 0,
+      availableQuantity: item.available_quantity ?? item.availableQuantity ?? 0,
+      isCheckoutable: item.is_checkoutable ?? item.isCheckoutable ?? true,
+      requiresApproval: item.requires_approval ?? item.requiresApproval ?? false,
+      maxCheckoutDuration: item.max_checkout_duration || item.maxCheckoutDuration,
+      purchaseDate: item.purchase_date || item.purchaseDate,
+      warrantyExpiry: item.warranty_expiry || item.warrantyExpiry,
+      createdAt: item.created_at || item.createdAt,
+      updatedAt: item.updated_at || item.updatedAt,
+      createdBy: item.created_by || item.createdBy,
+      lastModifiedBy: item.last_modified_by || item.lastModifiedBy
+    };
+  }
+
   // User methods
   async findUserById(id) {
     const { data, error } = await this.supabase
@@ -153,7 +178,7 @@ class SupabaseStorageService {
       return null;
     }
     
-    return data || null;
+    return this.normalizeItem(data);
   }
 
   async findItemByQRCode(qrCode) {
@@ -168,7 +193,7 @@ class SupabaseStorageService {
       return null;
     }
     
-    return data || null;
+    return this.normalizeItem(data);
   }
 
   async findItemByBarcode(barcode) {
@@ -183,7 +208,7 @@ class SupabaseStorageService {
       return null;
     }
     
-    return data || null;
+    return this.normalizeItem(data);
   }
 
   async createItem(itemData) {
@@ -288,12 +313,7 @@ class SupabaseStorageService {
     }
     
     // Convert snake_case to camelCase for compatibility
-    return (data || []).map(item => ({
-      ...item,
-      qrCode: item.qr_code,
-      _id: item.id,
-      id: item.id
-    }));
+    return (data || []).map(item => this.normalizeItem(item));
   }
 
   // Transaction methods
