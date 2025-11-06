@@ -483,7 +483,8 @@ router.post('/:id/approve', protect, checkPermission('canApprove'), async (req, 
     });
 
     // Notify user
-    const transactionUserId = transaction.user._id || transaction.user.id || transaction.user;
+    // Handle both normalized (user object) and raw (user_id) formats
+    const transactionUserId = transaction.user?._id || transaction.user?.id || transaction.user_id || transaction.user;
     await createNotification({
       recipient: transactionUserId,
       type: 'approval_approved',
