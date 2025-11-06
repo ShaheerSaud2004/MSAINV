@@ -465,6 +465,16 @@ class SupabaseStorageService {
       queryBuilder = queryBuilder.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
     }
     
+    // Add limit if specified (for performance)
+    if (query.limit) {
+      queryBuilder = queryBuilder.limit(query.limit);
+    }
+    
+    // Order by name for consistent results
+    if (!query.orderBy) {
+      queryBuilder = queryBuilder.order('name', { ascending: true });
+    }
+    
     const { data, error } = await queryBuilder;
     
     if (error) {
@@ -767,6 +777,16 @@ class SupabaseStorageService {
     }
     if (query.type) {
       queryBuilder = queryBuilder.eq('type', query.type);
+    }
+    
+    // Add limit if specified (for performance)
+    if (query.limit) {
+      queryBuilder = queryBuilder.limit(query.limit);
+    }
+    
+    // Order by created_at descending for better performance on recent queries
+    if (!query.orderBy) {
+      queryBuilder = queryBuilder.order('created_at', { ascending: false });
     }
     
     const { data, error } = await queryBuilder;

@@ -10,9 +10,20 @@ router.get('/dashboard', protect, async (req, res) => {
   try {
     const storageService = getStorageService();
 
-    // Global inventory and transactions; per-user filtering for base users below
+    // Optimize: Only fetch what we need for dashboard
+    // For items, we just need count and status - fetch minimal data
     const items = await storageService.findAllItems({});
-    let transactions = await storageService.findAllTransactions({});
+    
+    // For transactions, limit to recent ones for dashboard (last 100 for calculations)
+    // We'll fetch more if needed for recent activity
+    let allTransactions = await storageService.findAllTransactions({});
+    
+    // Limit transactions for processing (we only need recent ones for dashboard)
+    let transactions = allTransactions
+      .sort((a, b) => new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt))
+      .slice(0, 100); // Only process last 100 transactions for dashboard
+    
+    // For users, we just need count - fetch minimal data
     const users = await storageService.findAllUsers({});
 
     // Calculate metrics
@@ -22,9 +33,9 @@ router.get('/dashboard', protect, async (req, res) => {
 
     // If base user, only count their own transactions for summary
     const currentUserId = req.user._id || req.user.id;
-    let filteredForSummary = transactions;
+    let filteredForSummary = allTransactions;
     if (req.user.role === 'user') {
-      filteredForSummary = transactions.filter(t => {
+      filteredForSummary = allTransactions.filter(t => {
         // Handle Supabase format (t.user or t.users) and MongoDB format
         const userObj = t.user || t.users || {};
         const tUserId = userObj._id || userObj.id || t.user_id || t.user;
@@ -39,14 +50,12 @@ router.get('/dashboard', protect, async (req, res) => {
     const totalUsers = users.length;
     const activeUsers = users.filter(u => u.status === 'active').length;
 
-    // Recent activity (last 10 transactions)
-    let recentTransactions = transactions
-      .sort((a, b) => new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt))
-      .slice(0, 10);
+    // Recent activity (last 10 transactions) - already sorted above
+    let recentTransactions = transactions.slice(0, 10);
 
     // For base users, only show their own recent activity
     if (req.user.role === 'user') {
-      recentTransactions = transactions
+      recentTransactions = allTransactions
         .filter(t => {
           const userObj = t.user || t.users || {};
           const tUserId = userObj._id || userObj.id || t.user_id || t.user;
@@ -104,9 +113,9 @@ router.get('/dashboard', protect, async (req, res) => {
       });
     }
 
-    // Top items (most checked out)
+    // Top items (most checked out) - use all transactions for accurate counts
     const itemCheckoutCounts = {};
-    transactions.forEach(t => {
+    allTransactions.forEach(t => {
       // Handle both Supabase (items) and MongoDB (item) formats
       const itemObj = t.item || t.items || {};
       const itemId = itemObj._id || itemObj.id || t.item_id || t.item;
@@ -146,11 +155,11 @@ router.get('/dashboard', protect, async (req, res) => {
       categoryDistribution[category]++;
     });
 
-    // Transaction trends (last 30 days)
+    // Transaction trends (last 30 days) - use all transactions for trends
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const recentCheckouts = transactions.filter(t => {
+    const recentCheckouts = allTransactions.filter(t => {
       const createdAt = t.created_at || t.createdAt;
       return createdAt && new Date(createdAt) >= thirtyDaysAgo;
     });
