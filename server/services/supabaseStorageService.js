@@ -206,22 +206,37 @@ class SupabaseStorageService {
   }
 
   async updateUser(id, updates) {
+    // Normalize updates to snake_case
+    const normalized = { ...updates };
+    
+    // Convert camelCase to snake_case
+    if (normalized.lastLogin !== undefined) {
+      normalized.last_login = normalized.lastLogin instanceof Date 
+        ? normalized.lastLogin.toISOString() 
+        : normalized.lastLogin;
+      delete normalized.lastLogin;
+    }
+    
+    const updateData = {
+      ...normalized,
+      updated_at: new Date().toISOString()
+    };
+    
     const { data, error } = await this.supabase
       .from('users')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
     
     if (error) {
       console.error('Error updating user:', error);
+      console.error('Update data:', JSON.stringify(updateData, null, 2));
       return null;
     }
     
-    return data;
+    // Return normalized user
+    return this.normalizeUser(data);
   }
 
   async deleteUser(id) {
@@ -336,17 +351,71 @@ class SupabaseStorageService {
     return data;
   }
 
+  // Helper to convert item updates from camelCase to snake_case
+  normalizeItemForUpdate(updates) {
+    const normalized = { ...updates };
+    
+    // Convert all camelCase fields to snake_case
+    if (normalized.qrCode !== undefined) {
+      normalized.qr_code = normalized.qrCode;
+      delete normalized.qrCode;
+    }
+    if (normalized.subCategory !== undefined) {
+      normalized.sub_category = normalized.subCategory;
+      delete normalized.subCategory;
+    }
+    if (normalized.totalQuantity !== undefined) {
+      normalized.total_quantity = normalized.totalQuantity;
+      delete normalized.totalQuantity;
+    }
+    if (normalized.availableQuantity !== undefined) {
+      normalized.available_quantity = normalized.availableQuantity;
+      delete normalized.availableQuantity;
+    }
+    if (normalized.isCheckoutable !== undefined) {
+      normalized.is_checkoutable = normalized.isCheckoutable;
+      delete normalized.isCheckoutable;
+    }
+    if (normalized.requiresApproval !== undefined) {
+      normalized.requires_approval = normalized.requiresApproval;
+      delete normalized.requiresApproval;
+    }
+    if (normalized.maxCheckoutDuration !== undefined) {
+      normalized.max_checkout_duration = normalized.maxCheckoutDuration;
+      delete normalized.maxCheckoutDuration;
+    }
+    if (normalized.purchaseDate !== undefined) {
+      normalized.purchase_date = normalized.purchaseDate instanceof Date 
+        ? normalized.purchaseDate.toISOString() 
+        : normalized.purchaseDate;
+      delete normalized.purchaseDate;
+    }
+    if (normalized.warrantyExpiry !== undefined) {
+      normalized.warranty_expiry = normalized.warrantyExpiry instanceof Date 
+        ? normalized.warrantyExpiry.toISOString() 
+        : normalized.warrantyExpiry;
+      delete normalized.warrantyExpiry;
+    }
+    if (normalized.createdBy !== undefined) {
+      normalized.created_by = normalized.createdBy;
+      delete normalized.createdBy;
+    }
+    if (normalized.lastModifiedBy !== undefined) {
+      normalized.last_modified_by = normalized.lastModifiedBy;
+      delete normalized.lastModifiedBy;
+    }
+    
+    return normalized;
+  }
+
   async updateItem(id, updates) {
+    // Normalize updates to snake_case
+    const normalized = this.normalizeItemForUpdate(updates);
+    
     const updateData = {
-      ...updates,
+      ...normalized,
       updated_at: new Date().toISOString()
     };
-    
-    // Convert camelCase to snake_case
-    if (updateData.qrCode) {
-      updateData.qr_code = updateData.qrCode;
-      delete updateData.qrCode;
-    }
     
     const { data, error } = await this.supabase
       .from('items')
@@ -711,15 +780,26 @@ class SupabaseStorageService {
 
   // Notification methods
   async createNotification(notificationData) {
+    // Normalize notification data to snake_case
     const newNotification = {
       id: this.generateId(),
-      ...notificationData,
       recipient_id: notificationData.recipient || notificationData.recipient_id,
+      type: notificationData.type,
+      title: notificationData.title,
+      message: notificationData.message,
+      priority: notificationData.priority || 'medium',
+      is_read: notificationData.isRead ?? notificationData.is_read ?? false,
+      channels: notificationData.channels || {},
+      delivery_status: notificationData.deliveryStatus || notificationData.delivery_status || 'pending',
+      related_transaction: notificationData.relatedTransaction || notificationData.related_transaction || null,
+      related_item: notificationData.relatedItem || notificationData.related_item || null,
+      action_url: notificationData.actionUrl || notificationData.action_url || '',
+      action_text: notificationData.actionText || notificationData.action_text || '',
+      metadata: notificationData.metadata || {},
+      read_at: notificationData.readAt || notificationData.read_at || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
-    
-    delete newNotification.recipient;
     
     const { data, error } = await this.supabase
       .from('notifications')
@@ -729,12 +809,23 @@ class SupabaseStorageService {
     
     if (error) {
       console.error('Error creating notification:', error);
+      console.error('Notification data:', JSON.stringify(newNotification, null, 2));
       throw error;
     }
     
+    // Transform back to camelCase
     if (data) {
       data.recipient = data.recipient_id;
       data._id = data.id;
+      data.isRead = data.is_read;
+      data.actionUrl = data.action_url;
+      data.actionText = data.action_text;
+      data.relatedTransaction = data.related_transaction;
+      data.relatedItem = data.related_item;
+      data.deliveryStatus = data.delivery_status;
+      data.readAt = data.read_at;
+      data.createdAt = data.created_at;
+      data.updatedAt = data.updated_at;
     }
     
     return data;
