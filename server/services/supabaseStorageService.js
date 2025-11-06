@@ -43,6 +43,86 @@ class SupabaseStorageService {
     };
   }
 
+  // Helper to convert Supabase user to camelCase format and ensure permissions
+  normalizeUser(user) {
+    if (!user) return null;
+    
+    // Parse permissions if it's a string (JSONB from Supabase)
+    let permissions = user.permissions;
+    if (typeof permissions === 'string') {
+      try {
+        permissions = JSON.parse(permissions);
+      } catch (e) {
+        console.warn('Failed to parse permissions JSON:', e);
+        permissions = {};
+      }
+    }
+    
+    // Ensure permissions object exists and has defaults based on role
+    if (!permissions || typeof permissions !== 'object') {
+      permissions = {};
+    }
+    
+    // Set default permissions based on role if not already set
+    if (user.role === 'admin') {
+      permissions = {
+        canViewItems: true,
+        canCheckout: true,
+        canReturn: true,
+        canApprove: true,
+        canApproveTransactions: true,
+        canManageItems: true,
+        canManageUsers: true,
+        canViewAnalytics: true,
+        canManageSettings: true,
+        canBulkImport: true,
+        ...permissions // Override with existing permissions
+      };
+    } else if (user.role === 'manager') {
+      permissions = {
+        canViewItems: true,
+        canCheckout: true,
+        canReturn: true,
+        canApprove: true,
+        canApproveTransactions: true,
+        canManageItems: true,
+        canManageUsers: false,
+        canViewAnalytics: true,
+        canManageSettings: false,
+        canBulkImport: true,
+        ...permissions
+      };
+    } else {
+      // Default user permissions
+      permissions = {
+        canViewItems: true,
+        canCheckout: true,
+        canReturn: true,
+        canApprove: false,
+        canApproveTransactions: false,
+        canManageItems: false,
+        canManageUsers: false,
+        canViewAnalytics: false,
+        canManageSettings: false,
+        canBulkImport: false,
+        ...permissions
+      };
+    }
+    
+    return {
+      ...user,
+      // ID fields
+      _id: user.id,
+      id: user.id,
+      // Ensure permissions is an object
+      permissions: permissions,
+      // Convert snake_case to camelCase
+      lastLogin: user.last_login || user.lastLogin,
+      createdAt: user.created_at || user.createdAt,
+      updatedAt: user.updated_at || user.updatedAt
+    };
+  }
+
   // User methods
   async findUserById(id) {
     const { data, error } = await this.supabase
@@ -56,7 +136,7 @@ class SupabaseStorageService {
       return null;
     }
     
-    return data || null;
+    return this.normalizeUser(data);
   }
 
   async findUserByEmail(email) {
@@ -82,7 +162,7 @@ class SupabaseStorageService {
         return null;
       }
       
-      return data || null;
+      return this.normalizeUser(data);
     } catch (error) {
       console.error('Exception in findUserByEmail:', error);
       throw error;
@@ -162,7 +242,8 @@ class SupabaseStorageService {
       return [];
     }
     
-    return data || [];
+    // Normalize all users
+    return (data || []).map(user => this.normalizeUser(user));
   }
 
   // Item methods
