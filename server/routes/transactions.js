@@ -471,37 +471,60 @@ router.post('/:id/approve', protect, checkPermission('canApprove'), async (req, 
     }
 
     // Update transaction
-    await storageService.updateTransaction(req.params.id, {
+    const updateResult = await storageService.updateTransaction(req.params.id, {
       status: 'active',
       approvedBy: userId,
       approvedDate: new Date()
     });
 
+    if (!updateResult) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to update transaction status'
+      });
+    }
+
     // Update item quantities
-    await storageService.updateItem(itemId, {
+    const itemUpdateResult = await storageService.updateItem(itemId, {
       availableQuantity: item.availableQuantity - transaction.quantity
     });
 
-    // Notify user
-    // Handle both normalized (user object) and raw (user_id) formats
-    const transactionUserId = transaction.user?._id || transaction.user?.id || transaction.user_id || transaction.user;
-    await createNotification({
-      recipient: transactionUserId,
-      type: 'approval_approved',
-      title: 'Checkout Approved - Photos Required!',
-      message: `Your checkout request has been approved by ${req.user.name}. IMPORTANT: You MUST upload storage visit photos before closing this transaction.`,
-      priority: 'high',
-      channels: {
-        email: true,
-        sms: false,
-        push: true,
-        inApp: true
-      },
-      relatedTransaction: req.params.id,
-      relatedItem: itemId,
-      actionUrl: `/transactions/${req.params.id}`,
-      actionText: 'Upload Photos Now'
-    });
+    if (!itemUpdateResult) {
+      // Rollback transaction status if item update fails
+      await storageService.updateTransaction(req.params.id, {
+        status: 'pending'
+      });
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to update item quantities'
+      });
+    }
+
+    // Notify user (don't fail approval if notification fails)
+    try {
+      // Handle both normalized (user object) and raw (user_id) formats
+      const transactionUserId = transaction.user?._id || transaction.user?.id || transaction.user_id || transaction.user;
+      await createNotification({
+        recipient: transactionUserId,
+        type: 'approval_approved',
+        title: 'Checkout Approved - Photos Required!',
+        message: `Your checkout request has been approved by ${req.user.name}. IMPORTANT: You MUST upload storage visit photos before closing this transaction.`,
+        priority: 'high',
+        channels: {
+          email: true,
+          sms: false,
+          push: true,
+          inApp: true
+        },
+        relatedTransaction: req.params.id,
+        relatedItem: itemId,
+        actionUrl: `/transactions/${req.params.id}`,
+        actionText: 'Upload Photos Now'
+      });
+    } catch (notifError) {
+      console.error('Notification error (non-critical):', notifError);
+      // Don't fail the approval if notification fails
+    }
 
     res.json({
       success: true,

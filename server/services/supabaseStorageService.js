@@ -426,15 +426,12 @@ class SupabaseStorageService {
     
     if (error) {
       console.error('Error updating item:', error);
+      console.error('Update data:', JSON.stringify(updateData, null, 2));
       return null;
     }
     
-    // Convert back to camelCase
-    if (data) {
-      data.qrCode = data.qr_code;
-    }
-    
-    return data;
+    // Return normalized item
+    return this.normalizeItem(data);
   }
 
   async deleteItem(id) {
