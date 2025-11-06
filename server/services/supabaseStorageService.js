@@ -634,42 +634,33 @@ class SupabaseStorageService {
   }
 
   async updateTransaction(id, updates) {
+    // Normalize updates to snake_case
+    const normalized = this.normalizeTransactionForInsert(updates);
+    
     const updateData = {
-      ...updates,
+      ...normalized,
       updated_at: new Date().toISOString()
     };
-    
-    // Convert camelCase to snake_case
-    if (updateData.user) {
-      updateData.user_id = updateData.user;
-      delete updateData.user;
-    }
-    if (updateData.item) {
-      updateData.item_id = updateData.item;
-      delete updateData.item;
-    }
     
     const { data, error } = await this.supabase
       .from('transactions')
       .update(updateData)
       .eq('id', id)
-      .select()
+      .select(`
+        *,
+        items:item_id (*),
+        users:user_id (*)
+      `)
       .single();
     
     if (error) {
       console.error('Error updating transaction:', error);
+      console.error('Update data:', JSON.stringify(updateData, null, 2));
       return null;
     }
     
-    // Transform back
-    if (data) {
-      data.user = data.user_id;
-      data.item = data.item_id;
-      data.transactionNumber = data.transaction_number;
-      data._id = data.id;
-    }
-    
-    return data;
+    // Transform back to camelCase
+    return this.normalizeTransaction(data);
   }
 
   async findAllTransactions(query = {}) {

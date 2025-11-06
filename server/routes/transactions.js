@@ -452,7 +452,8 @@ router.post('/:id/approve', protect, checkPermission('canApprove'), async (req, 
     }
 
     // Get item and check availability
-    const itemId = transaction.item._id || transaction.item.id || transaction.item;
+    // Handle both normalized (item object) and raw (item_id) formats
+    const itemId = transaction.item?._id || transaction.item?.id || transaction.item_id || transaction.item;
     const item = await storageService.findItemById(itemId);
 
     if (!item) {
