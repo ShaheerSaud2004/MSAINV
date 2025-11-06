@@ -484,6 +484,15 @@ router.post('/:id/approve', protect, checkPermission('canApprove'), async (req, 
       });
     }
 
+    // Verify the update worked
+    if (updateResult.status !== 'active') {
+      console.error('Transaction status update failed. Expected: active, Got:', updateResult.status);
+      return res.status(500).json({
+        success: false,
+        message: 'Transaction status was not updated correctly'
+      });
+    }
+
     // Update item quantities
     const itemUpdateResult = await storageService.updateItem(itemId, {
       availableQuantity: item.availableQuantity - transaction.quantity
@@ -526,10 +535,28 @@ router.post('/:id/approve', protect, checkPermission('canApprove'), async (req, 
       // Don't fail the approval if notification fails
     }
 
+    // Fetch the updated transaction to ensure we return the latest data
+    const updatedTransaction = await storageService.findTransactionById(req.params.id);
+    
+    if (!updatedTransaction) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve updated transaction'
+      });
+    }
+
+    // Log for debugging
+    console.log('Transaction approved:', {
+      id: updatedTransaction.id,
+      status: updatedTransaction.status,
+      approvedBy: updatedTransaction.approvedBy,
+      approvedDate: updatedTransaction.approvedDate
+    });
+
     res.json({
       success: true,
       message: 'Transaction approved successfully',
-      data: await storageService.findTransactionById(req.params.id)
+      data: updatedTransaction
     });
   } catch (error) {
     console.error('Approve error:', error);

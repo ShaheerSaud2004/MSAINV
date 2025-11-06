@@ -675,10 +675,13 @@ class SupabaseStorageService {
   normalizeTransaction(transaction) {
     if (!transaction) return null;
     
-    return {
+    // Ensure status is explicitly preserved
+    const normalized = {
       ...transaction,
       _id: transaction.id,
       id: transaction.id,
+      status: transaction.status, // Explicitly preserve status
+      type: transaction.type, // Explicitly preserve type
       user: transaction.users || transaction.user_id || transaction.user,
       item: transaction.items || transaction.item_id || transaction.item,
       transactionNumber: transaction.transaction_number || transaction.transactionNumber,
@@ -710,6 +713,8 @@ class SupabaseStorageService {
       createdAt: transaction.created_at || transaction.createdAt,
       updatedAt: transaction.updated_at || transaction.updatedAt
     };
+    
+    return normalized;
   }
 
   async updateTransaction(id, updates) {
