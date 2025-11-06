@@ -414,14 +414,142 @@ class SupabaseStorageService {
       return null;
     }
     
-    if (data) {
-      // Transform to match expected format
-      data.item = data.items;
-      data.user = data.users;
-      data._id = data.id;
+    return this.normalizeTransaction(data);
+  }
+
+  // Helper to convert transaction camelCase to snake_case
+  normalizeTransactionForInsert(transactionData) {
+    const normalized = { ...transactionData };
+    
+    // Convert all camelCase fields to snake_case
+    if (normalized.user !== undefined) {
+      normalized.user_id = normalized.user;
+      delete normalized.user;
+    }
+    if (normalized.item !== undefined) {
+      normalized.item_id = normalized.item;
+      delete normalized.item;
+    }
+    if (normalized.transactionNumber !== undefined) {
+      normalized.transaction_number = normalized.transactionNumber;
+      delete normalized.transactionNumber;
+    }
+    if (normalized.checkoutDate !== undefined) {
+      normalized.checkout_date = normalized.checkoutDate instanceof Date 
+        ? normalized.checkoutDate.toISOString() 
+        : normalized.checkoutDate;
+      delete normalized.checkoutDate;
+    }
+    if (normalized.expectedReturnDate !== undefined) {
+      normalized.expected_return_date = normalized.expectedReturnDate instanceof Date 
+        ? normalized.expectedReturnDate.toISOString() 
+        : normalized.expectedReturnDate;
+      delete normalized.expectedReturnDate;
+    }
+    if (normalized.actualReturnDate !== undefined) {
+      normalized.actual_return_date = normalized.actualReturnDate instanceof Date 
+        ? normalized.actualReturnDate.toISOString() 
+        : normalized.actualReturnDate;
+      delete normalized.actualReturnDate;
+    }
+    if (normalized.returnDate !== undefined) {
+      normalized.return_date = normalized.returnDate instanceof Date 
+        ? normalized.returnDate.toISOString() 
+        : normalized.returnDate;
+      delete normalized.returnDate;
+    }
+    if (normalized.checkoutCondition !== undefined) {
+      normalized.checkout_condition = normalized.checkoutCondition;
+      delete normalized.checkoutCondition;
+    }
+    if (normalized.returnCondition !== undefined) {
+      normalized.return_condition = normalized.returnCondition;
+      delete normalized.returnCondition;
+    }
+    if (normalized.conditionOnReturn !== undefined) {
+      normalized.condition_on_return = normalized.conditionOnReturn;
+      delete normalized.conditionOnReturn;
+    }
+    if (normalized.approvalRequired !== undefined) {
+      normalized.approval_required = normalized.approvalRequired;
+      delete normalized.approvalRequired;
+    }
+    if (normalized.requiresStoragePhoto !== undefined) {
+      normalized.requires_storage_photo = normalized.requiresStoragePhoto;
+      delete normalized.requiresStoragePhoto;
+    }
+    if (normalized.storagePhotoUploaded !== undefined) {
+      normalized.storage_photo_uploaded = normalized.storagePhotoUploaded;
+      delete normalized.storagePhotoUploaded;
+    }
+    if (normalized.isOverdue !== undefined) {
+      normalized.is_overdue = normalized.isOverdue;
+      delete normalized.isOverdue;
+    }
+    if (normalized.checkedOutBy !== undefined) {
+      normalized.checked_out_by = normalized.checkedOutBy;
+      delete normalized.checkedOutBy;
+    }
+    if (normalized.returnedBy !== undefined) {
+      normalized.returned_by = normalized.returnedBy;
+      delete normalized.returnedBy;
+    }
+    if (normalized.approvedBy !== undefined) {
+      normalized.approved_by = normalized.approvedBy;
+      delete normalized.approvedBy;
+    }
+    if (normalized.rejectedBy !== undefined) {
+      normalized.rejected_by = normalized.rejectedBy;
+      delete normalized.rejectedBy;
+    }
+    if (normalized.scannedViaQR !== undefined) {
+      normalized.scanned_via_qr = normalized.scannedViaQR;
+      delete normalized.scannedViaQR;
+    }
+    if (normalized.qrScanData !== undefined) {
+      normalized.qr_scan_data = normalized.qrScanData;
+      delete normalized.qrScanData;
+    }
+    if (normalized.returnNotes !== undefined) {
+      normalized.return_notes = normalized.returnNotes;
+      delete normalized.returnNotes;
+    }
+    if (normalized.penaltyAmount !== undefined) {
+      normalized.penalty_amount = normalized.penaltyAmount;
+      delete normalized.penaltyAmount;
+    }
+    if (normalized.overdueNotificationSent !== undefined) {
+      normalized.overdue_notification_sent = normalized.overdueNotificationSent;
+      delete normalized.overdueNotificationSent;
+    }
+    if (normalized.remindersSent !== undefined) {
+      normalized.reminders_sent = normalized.remindersSent;
+      delete normalized.remindersSent;
+    }
+    if (normalized.lastReminderDate !== undefined) {
+      normalized.last_reminder_date = normalized.lastReminderDate instanceof Date 
+        ? normalized.lastReminderDate.toISOString() 
+        : normalized.lastReminderDate;
+      delete normalized.lastReminderDate;
+    }
+    if (normalized.rejectionReason !== undefined) {
+      normalized.rejection_reason = normalized.rejectionReason;
+      delete normalized.rejectionReason;
+    }
+    if (normalized.approvedDate !== undefined) {
+      normalized.approved_date = normalized.approvedDate instanceof Date 
+        ? normalized.approvedDate.toISOString() 
+        : normalized.approvedDate;
+      delete normalized.approvedDate;
+    }
+    if (normalized.rejectedDate !== undefined) {
+      normalized.rejected_date = normalized.rejectedDate instanceof Date 
+        ? normalized.rejectedDate.toISOString() 
+        : normalized.rejectedDate;
+      delete normalized.rejectedDate;
     }
     
-    return data || null;
+    return normalized;
   }
 
   async createTransaction(transactionData) {
@@ -431,20 +559,18 @@ class SupabaseStorageService {
     const day = String(date.getDate()).padStart(2, '0');
     const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
     
+    // Normalize all fields to snake_case
+    const normalized = this.normalizeTransactionForInsert(transactionData);
+    
     const newTransaction = {
       id: this.generateId(),
-      ...transactionData,
-      user_id: transactionData.user || transactionData.user_id,
-      item_id: transactionData.item || transactionData.item_id,
-      transaction_number: transactionData.transactionNumber || `TXN-${year}${month}${day}-${random}`,
+      ...normalized,
+      user_id: normalized.user_id || transactionData.user || transactionData.user_id,
+      item_id: normalized.item_id || transactionData.item || transactionData.item_id,
+      transaction_number: normalized.transaction_number || transactionData.transactionNumber || `TXN-${year}${month}${day}-${random}`,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
-    
-    // Remove camelCase fields
-    delete newTransaction.user;
-    delete newTransaction.item;
-    delete newTransaction.transactionNumber;
     
     const { data, error } = await this.supabase
       .from('transactions')
@@ -454,18 +580,57 @@ class SupabaseStorageService {
     
     if (error) {
       console.error('Error creating transaction:', error);
+      console.error('Transaction data:', JSON.stringify(newTransaction, null, 2));
       throw error;
     }
     
-    // Transform back
+    // Transform back to camelCase for response
     if (data) {
-      data.user = data.user_id;
-      data.item = data.item_id;
-      data.transactionNumber = data.transaction_number;
-      data._id = data.id;
+      return this.normalizeTransaction(data);
     }
     
     return data;
+  }
+
+  // Helper to convert transaction snake_case to camelCase
+  normalizeTransaction(transaction) {
+    if (!transaction) return null;
+    
+    return {
+      ...transaction,
+      _id: transaction.id,
+      id: transaction.id,
+      user: transaction.users || transaction.user_id || transaction.user,
+      item: transaction.items || transaction.item_id || transaction.item,
+      transactionNumber: transaction.transaction_number || transaction.transactionNumber,
+      checkoutDate: transaction.checkout_date || transaction.checkoutDate,
+      expectedReturnDate: transaction.expected_return_date || transaction.expectedReturnDate,
+      actualReturnDate: transaction.actual_return_date || transaction.actualReturnDate,
+      returnDate: transaction.return_date || transaction.returnDate,
+      checkoutCondition: transaction.checkout_condition || transaction.checkoutCondition,
+      returnCondition: transaction.return_condition || transaction.returnCondition,
+      conditionOnReturn: transaction.condition_on_return || transaction.conditionOnReturn,
+      approvalRequired: transaction.approval_required ?? transaction.approvalRequired ?? false,
+      requiresStoragePhoto: transaction.requires_storage_photo ?? transaction.requiresStoragePhoto ?? false,
+      storagePhotoUploaded: transaction.storage_photo_uploaded ?? transaction.storagePhotoUploaded ?? false,
+      isOverdue: transaction.is_overdue ?? transaction.isOverdue ?? false,
+      checkedOutBy: transaction.checked_out_by || transaction.checkedOutBy,
+      returnedBy: transaction.returned_by || transaction.returnedBy,
+      approvedBy: transaction.approved_by || transaction.approvedBy,
+      rejectedBy: transaction.rejected_by || transaction.rejectedBy,
+      scannedViaQR: transaction.scanned_via_qr ?? transaction.scannedViaQR ?? false,
+      qrScanData: transaction.qr_scan_data || transaction.qrScanData,
+      returnNotes: transaction.return_notes || transaction.returnNotes,
+      penaltyAmount: transaction.penalty_amount || transaction.penaltyAmount,
+      overdueNotificationSent: transaction.overdue_notification_sent ?? transaction.overdueNotificationSent ?? false,
+      remindersSent: transaction.reminders_sent || transaction.remindersSent || 0,
+      lastReminderDate: transaction.last_reminder_date || transaction.lastReminderDate,
+      rejectionReason: transaction.rejection_reason || transaction.rejectionReason,
+      approvedDate: transaction.approved_date || transaction.approvedDate,
+      rejectedDate: transaction.rejected_date || transaction.rejectedDate,
+      createdAt: transaction.created_at || transaction.createdAt,
+      updatedAt: transaction.updated_at || transaction.updatedAt
+    };
   }
 
   async updateTransaction(id, updates) {
@@ -537,30 +702,7 @@ class SupabaseStorageService {
     }
     
     // Transform to match expected format
-    return (data || []).map(t => {
-      const transformed = {
-        ...t,
-        item: t.items || null,
-        user: t.users || null,
-        transactionNumber: t.transaction_number,
-        _id: t.id,
-        // Ensure camelCase fields for compatibility
-        createdAt: t.created_at,
-        updatedAt: t.updated_at,
-        checkoutDate: t.checkout_date,
-        expectedReturnDate: t.expected_return_date,
-        actualReturnDate: t.actual_return_date,
-        returnDate: t.return_date,
-        isOverdue: t.is_overdue,
-        requiresStoragePhoto: t.requires_storage_photo,
-        storagePhotoUploaded: t.storage_photo_uploaded,
-        approvalRequired: t.approval_required
-      };
-      // Remove null items/users to avoid issues
-      if (!transformed.item) delete transformed.item;
-      if (!transformed.user) delete transformed.user;
-      return transformed;
-    });
+    return (data || []).map(t => this.normalizeTransaction(t));
   }
 
   // Notification methods
