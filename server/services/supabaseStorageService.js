@@ -170,10 +170,21 @@ class SupabaseStorageService {
   }
 
   async createUser(userData) {
+    // Normalize user data for Supabase
     const newUser = {
       id: this.generateId(),
-      ...userData,
+      name: userData.name,
       email: userData.email?.toLowerCase(),
+      password: userData.password,
+      role: userData.role || 'user',
+      department: userData.department || '',
+      team: userData.team || '',
+      phone: userData.phone || '',
+      status: userData.status || 'active',
+      permissions: userData.permissions || {},
+      preferences: userData.preferences || {},
+      profile: userData.profile || {},
+      last_login: userData.lastLogin ? (userData.lastLogin instanceof Date ? userData.lastLogin.toISOString() : userData.lastLogin) : null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -186,10 +197,12 @@ class SupabaseStorageService {
     
     if (error) {
       console.error('Error creating user:', error);
+      console.error('User data:', JSON.stringify(newUser, null, 2));
       throw error;
     }
     
-    return data;
+    // Return normalized user
+    return this.normalizeUser(data);
   }
 
   async updateUser(id, updates) {
