@@ -25,7 +25,9 @@ router.get('/dashboard', protect, async (req, res) => {
     let filteredForSummary = transactions;
     if (req.user.role === 'user') {
       filteredForSummary = transactions.filter(t => {
-        const tUserId = t.user._id || t.user.id || t.user;
+        // Handle Supabase format (t.user or t.users) and MongoDB format
+        const userObj = t.user || t.users || {};
+        const tUserId = userObj._id || userObj.id || t.user_id || t.user;
         return String(tUserId) === String(currentUserId);
       });
     }
@@ -39,31 +41,59 @@ router.get('/dashboard', protect, async (req, res) => {
 
     // Recent activity (last 10 transactions)
     let recentTransactions = transactions
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .sort((a, b) => new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt))
       .slice(0, 10);
 
     // For base users, only show their own recent activity
     if (req.user.role === 'user') {
       recentTransactions = transactions
-        .filter(t => String((t.user._id || t.user.id || t.user)) === String(currentUserId))
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .filter(t => {
+          const userObj = t.user || t.users || {};
+          const tUserId = userObj._id || userObj.id || t.user_id || t.user;
+          return String(tUserId) === String(currentUserId);
+        })
+        .sort((a, b) => new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt))
         .slice(0, 10);
     }
 
-    // Populate recent transactions for JSON storage
+    // Populate recent transactions
     let populatedRecentTransactions = recentTransactions;
     if (process.env.STORAGE_MODE === 'json') {
       populatedRecentTransactions = await Promise.all(
         recentTransactions.map(async (t) => {
-          const item = await storageService.findItemById(t.item);
-          const user = await storageService.findUserById(t.user);
+          const itemId = t.item?._id || t.item?.id || t.item_id || t.item;
+          const userId = t.user?._id || t.user?.id || t.user_id || t.user;
+          const item = await storageService.findItemById(itemId);
+          const user = await storageService.findUserById(userId);
           return {
             ...t,
-            item: item || t.item,
-            user: user ? { _id: user._id || user.id, name: user.name, email: user.email } : t.user
+            item: item || t.item || t.items,
+            user: user ? { _id: user._id || user.id, name: user.name, email: user.email } : (t.user || t.users || {})
           };
         })
       );
+    } else if (process.env.STORAGE_MODE === 'supabase') {
+      // For Supabase, normalize the format (items/users -> item/user)
+      populatedRecentTransactions = recentTransactions.map(t => {
+        const normalized = { ...t };
+        // Normalize item reference
+        if (t.items && !t.item) {
+          normalized.item = t.items;
+        }
+        // Normalize user reference
+        if (t.users && !t.user) {
+          normalized.user = t.users;
+        }
+        // Ensure _id exists for compatibility
+        if (!normalized._id) {
+          normalized._id = normalized.id;
+        }
+        // Ensure createdAt exists
+        if (!normalized.createdAt && normalized.created_at) {
+          normalized.createdAt = normalized.created_at;
+        }
+        return normalized;
+      });
     } else {
       // For MongoDB, convert mongoose documents to plain objects
       populatedRecentTransactions = recentTransactions.map(t => {
@@ -74,14 +104,18 @@ router.get('/dashboard', protect, async (req, res) => {
       });
     }
 
-    // Top items (most checked out) - team scoped above
+    // Top items (most checked out)
     const itemCheckoutCounts = {};
     transactions.forEach(t => {
-      const itemId = t.item._id || t.item.id || t.item;
-      if (!itemCheckoutCounts[itemId]) {
-        itemCheckoutCounts[itemId] = 0;
+      // Handle both Supabase (items) and MongoDB (item) formats
+      const itemObj = t.item || t.items || {};
+      const itemId = itemObj._id || itemObj.id || t.item_id || t.item;
+      if (itemId) {
+        if (!itemCheckoutCounts[itemId]) {
+          itemCheckoutCounts[itemId] = 0;
+        }
+        itemCheckoutCounts[itemId]++;
       }
-      itemCheckoutCounts[itemId]++;
     });
 
     const topItemIds = Object.entries(itemCheckoutCounts)
@@ -116,9 +150,10 @@ router.get('/dashboard', protect, async (req, res) => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const recentCheckouts = transactions.filter(t => 
-      new Date(t.createdAt) >= thirtyDaysAgo
-    );
+    const recentCheckouts = transactions.filter(t => {
+      const createdAt = t.created_at || t.createdAt;
+      return createdAt && new Date(createdAt) >= thirtyDaysAgo;
+    });
 
     const dailyCheckouts = {};
     for (let i = 0; i < 30; i++) {
@@ -129,9 +164,12 @@ router.get('/dashboard', protect, async (req, res) => {
     }
 
     recentCheckouts.forEach(t => {
-      const dateStr = new Date(t.createdAt).toISOString().split('T')[0];
-      if (dailyCheckouts[dateStr] !== undefined) {
-        dailyCheckouts[dateStr]++;
+      const createdAt = t.created_at || t.createdAt;
+      if (createdAt) {
+        const dateStr = new Date(createdAt).toISOString().split('T')[0];
+        if (dailyCheckouts[dateStr] !== undefined) {
+          dailyCheckouts[dateStr]++;
+        }
       }
     });
 

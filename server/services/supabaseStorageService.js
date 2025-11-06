@@ -436,13 +436,30 @@ class SupabaseStorageService {
     }
     
     // Transform to match expected format
-    return (data || []).map(t => ({
-      ...t,
-      item: t.items,
-      user: t.users,
-      transactionNumber: t.transaction_number,
-      _id: t.id
-    }));
+    return (data || []).map(t => {
+      const transformed = {
+        ...t,
+        item: t.items || null,
+        user: t.users || null,
+        transactionNumber: t.transaction_number,
+        _id: t.id,
+        // Ensure camelCase fields for compatibility
+        createdAt: t.created_at,
+        updatedAt: t.updated_at,
+        checkoutDate: t.checkout_date,
+        expectedReturnDate: t.expected_return_date,
+        actualReturnDate: t.actual_return_date,
+        returnDate: t.return_date,
+        isOverdue: t.is_overdue,
+        requiresStoragePhoto: t.requires_storage_photo,
+        storagePhotoUploaded: t.storage_photo_uploaded,
+        approvalRequired: t.approval_required
+      };
+      // Remove null items/users to avoid issues
+      if (!transformed.item) delete transformed.item;
+      if (!transformed.user) delete transformed.user;
+      return transformed;
+    });
   }
 
   // Notification methods
