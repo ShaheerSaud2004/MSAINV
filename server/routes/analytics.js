@@ -133,14 +133,16 @@ router.get('/dashboard', protect, async (req, res) => {
       .map(([id, count]) => ({ id, count }));
 
     const topItems = await Promise.all(
-      topItemIds.map(async ({ id, count }) => {
-        const item = await storageService.findItemById(id);
-        if (!item) return null;
-        
-        // Convert mongoose document to plain object if needed
-        const itemObj = item.toObject ? item.toObject() : item;
-        return { ...itemObj, checkoutCount: count };
-      })
+      topItemIds
+        .filter(({ id }) => Boolean(id))
+        .map(async ({ id, count }) => {
+          const item = await storageService.findItemById(id);
+          if (!item) return null;
+          
+          // Convert mongoose document to plain object if needed
+          const itemObj = item.toObject ? item.toObject() : item;
+          return { ...itemObj, checkoutCount: count };
+        })
     );
 
     // Category distribution

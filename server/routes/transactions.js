@@ -208,8 +208,6 @@ router.post('/checkout', protect, checkPermission('canCheckout'), [
       checkoutCondition: itemDoc.condition,
       notes: notes || '',
       approvalRequired: true, // Always true now
-      requiresStoragePhoto: true, // Require photo at storage
-      storagePhotoUploaded: false,
       checkedOutBy: userId
     };
 
@@ -340,14 +338,6 @@ router.post('/:id/return', protect, checkPermission('canReturn'), [
       return res.status(400).json({
         success: false,
         message: 'Only active or overdue transactions can be returned'
-      });
-    }
-
-    // Check if storage photos are uploaded (required before closing)
-    if (transaction.requiresStoragePhoto && !transaction.storagePhotoUploaded) {
-      return res.status(400).json({
-        success: false,
-        message: 'You must upload storage visit photos before closing this transaction. Please upload photos first.'
       });
     }
 

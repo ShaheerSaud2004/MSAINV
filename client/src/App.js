@@ -22,7 +22,6 @@ import QRScanner from './pages/QRScanner';
 import CheckoutForm from './pages/CheckoutForm';
 import PrintQRCodes from './pages/PrintQRCodes';
 import AdminPanel from './pages/AdminPanel';
-import StorageVisitPhoto from './pages/StorageVisitPhoto';
 import GuestRequest from './pages/GuestRequest';
 import Tutorial from './pages/Tutorial';
 import Quiz from './pages/Quiz';
@@ -253,15 +252,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/storage-visit/:transactionId"
-          element={
-            <ProtectedRoute>
-              <StorageVisitPhoto />
-            </ProtectedRoute>
-          }
-        />
-
         {/* Default Route */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -4,9 +4,8 @@ import { transactionsAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { ArrowLeftIcon, CameraIcon, PhotoIcon, CheckCircleIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, CheckCircleIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
-import { Link } from 'react-router-dom';
 
 const TransactionDetail = () => {
   const { id } = useParams();
@@ -60,11 +59,6 @@ const TransactionDetail = () => {
   };
 
   const handleReturn = async () => {
-    if (!transaction.storagePhotoUploaded) {
-      toast.error('Upload storage visit photos before submitting the return.');
-      return;
-    }
-
     const hasMessaged = window.confirm('Have you copied the WhatsApp message and posted it in the Storage chat?');
     if (!hasMessaged) {
       toast.info('Please copy the message and notify the storage lead before submitting.');
@@ -157,19 +151,10 @@ const TransactionDetail = () => {
         )}
         {transaction.status === 'active' && (
           <button 
-            onClick={() => {
-              if (!transaction.storagePhotoUploaded) {
-                toast.error('You must upload storage visit photos before closing this transaction!', {
-                  autoClose: 5000
-                });
-                return;
-              }
-              handleReturn();
-            }} 
+            onClick={handleReturn}
             className="btn-success"
-            disabled={!transaction.storagePhotoUploaded}
           >
-            {transaction.storagePhotoUploaded ? 'Submit Return for Review' : 'Upload Photos First'}
+            Submit Return for Review
           </button>
         )}
         {hasPermission('canApprove') && transaction.status === 'return_pending' && (
@@ -331,16 +316,16 @@ const TransactionDetail = () => {
         )}
 
         {/* Return submission instructions */}
-        {transaction.status === 'active' && transaction.storagePhotoUploaded && (
+        {transaction.status === 'active' && (
           <div className="mt-6 p-5 bg-gradient-to-r from-yellow-50 via-orange-50 to-amber-50 border-l-4 border-yellow-500 rounded-lg">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
                 <ClipboardDocumentIcon className="w-8 h-8 text-yellow-600" />
               </div>
               <div className="flex-1 space-y-3">
-                <h3 className="text-lg font-bold text-gray-900">📣 Final Step: Notify Storage Chat & Submit Return</h3>
+                <h3 className="text-lg font-bold text-gray-900">📣 Final Step: Send a Photo in WhatsApp</h3>
                 <p className="text-gray-700">
-                  Copy the message below, send it in the Storage WhatsApp chat, then click <span className="font-semibold">Submit Return for Review</span>.
+                  Snap a quick photo of the item back in storage, paste the message below in the Storage WhatsApp chat, then click <span className="font-semibold">Submit Return for Review</span>.
                 </p>
                 <div className="bg-white rounded-lg p-4 border-2 border-gray-200">
                   <p className="text-gray-800 whitespace-pre-wrap font-mono text-sm">
@@ -373,13 +358,6 @@ const TransactionDetail = () => {
                       </>
                     )}
                   </button>
-                  <Link
-                    to={`/storage-visit/${id}`}
-                    className="btn-secondary flex items-center gap-2"
-                  >
-                    <CameraIcon className="w-5 h-5" />
-                    Review Uploaded Photos
-                  </Link>
                   <button
                     onClick={handleReturn}
                     className="btn-success flex items-center gap-2"
@@ -408,150 +386,8 @@ const TransactionDetail = () => {
             </div>
           </div>
         )}
-
-        {/* REQUIRED PHOTO ALERT - Show after approval */}
-        {(transaction.status === 'active' || transaction.status === 'approved') && 
-         !transaction.storagePhotoUploaded && (
-          <div className="mt-6 p-6 bg-gradient-to-r from-yellow-50 via-orange-50 to-red-50 border-l-4 border-orange-500 rounded-lg shadow-lg animate-pulse">
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0">
-                <CameraIcon className="w-10 h-10 text-orange-600" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-orange-900 mb-2">
-                  ⚠️ REQUIRED: Upload Storage Visit Photos
-                </h3>
-                <p className="text-orange-800 font-semibold mb-3">
-                  You MUST upload photos of your storage visit before closing out this transaction.
-                </p>
-                <p className="text-sm text-orange-700 mb-4">
-                  This is required for safety, accountability, and proper documentation. The transaction cannot be completed until photos are uploaded.
-                </p>
-                <Link
-                  to={`/storage-visit/${id}`}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold rounded-lg hover:from-orange-600 hover:to-red-600 shadow-md hover:shadow-lg transition-all transform hover:scale-105"
-                >
-                  <CameraIcon className="w-6 h-6" />
-                  Upload Photos Now
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Storage Visit Photos Section */}
-      <div className="card">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Storage Visit Documentation</h2>
-            <p className="text-gray-600 mt-1">
-              {(transaction.status === 'active' || transaction.status === 'approved') && !transaction.storagePhotoUploaded
-                ? '⚠️ REQUIRED: Upload photos before closing this transaction'
-                : 'Photos taken during storage visits for safety tracking'}
-            </p>
-          </div>
-          {(transaction.status === 'active' || transaction.status === 'approved' || transaction.status === 'pending') && (
-            <Link
-              to={`/storage-visit/${id}`}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold shadow-md hover:shadow-lg transition-all ${
-                !transaction.storagePhotoUploaded && (transaction.status === 'active' || transaction.status === 'approved')
-                  ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600 animate-pulse'
-                  : 'btn-primary'
-              }`}
-            >
-              <CameraIcon className="w-5 h-5" />
-              {!transaction.storagePhotoUploaded && (transaction.status === 'active' || transaction.status === 'approved')
-                ? '⚠️ Upload Required Photos'
-                : 'Upload Photos'}
-            </Link>
-          )}
-        </div>
-
-        {transaction.storagePhotoUploaded && transaction.storageVisits && transaction.storageVisits.length > 0 ? (
-          <div className="space-y-6">
-            {transaction.storageVisits.map((visit, index) => (
-              <div key={index} className="border border-gray-200 rounded-xl p-6 bg-gray-50">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className={`badge ${
-                        visit.visitType === 'pickup' ? 'badge-success' :
-                        visit.visitType === 'return' ? 'badge-info' :
-                        visit.visitType === 'inspection' ? 'badge-warning' :
-                        'badge-gray'
-                      }`}>
-                        {visit.visitType}
-                      </span>
-                      <span className="text-sm text-gray-600">
-                        {format(new Date(visit.visitDate), 'MMM dd, yyyy • h:mm a')}
-                      </span>
-                      {visit.verifiedBy && (
-                        <span className="flex items-center gap-1 text-sm text-green-600">
-                          <CheckCircleIcon className="w-4 h-4" />
-                          Verified
-                        </span>
-                      )}
-                    </div>
-                    {visit.location && (
-                      <p className="text-sm text-gray-600">📍 {visit.location}</p>
-                    )}
-                  </div>
-                  <div className="text-right text-sm text-gray-600">
-                    <p>By: {visit.userId?.name || 'Unknown'}</p>
-                  </div>
-                </div>
-
-                {/* Photos Grid */}
-                {visit.photos && visit.photos.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
-                    {visit.photos.map((photo, photoIndex) => (
-                      <div key={photoIndex} className="relative group">
-                        <img
-                          src={photo.url.startsWith('http') ? photo.url : (photo.url.startsWith('/') ? photo.url : `/${photo.url}`)}
-                          alt={photo.caption || `Visit photo ${photoIndex + 1}`}
-                          className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 group-hover:border-blue-500 transition-all cursor-pointer"
-                          onClick={() => {
-                            const url = photo.url.startsWith('http') ? photo.url : (photo.url.startsWith('/') ? photo.url : `/${photo.url}`);
-                            window.open(url, '_blank');
-                          }}
-                        />
-                        {photo.caption && (
-                          <p className="text-xs text-gray-600 mt-1 truncate">{photo.caption}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {visit.notes && (
-                  <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200">
-                    <p className="text-sm font-medium text-gray-700">Notes:</p>
-                    <p className="text-sm text-gray-600 mt-1">{visit.notes}</p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-            <PhotoIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 font-medium mb-2">No storage visit photos yet</p>
-            <p className="text-sm text-gray-500 mb-4">
-              Upload photos when visiting storage for safety and tracking purposes
-            </p>
-            {(transaction.status === 'active' || transaction.status === 'approved' || transaction.status === 'pending') && (
-              <Link
-                to={`/storage-visit/${id}`}
-                className="btn-primary inline-flex items-center gap-2"
-              >
-                <CameraIcon className="w-5 h-5" />
-                Upload Photos Now
-              </Link>
-            )}
-          </div>
-        )}
-      </div>
     </div>
   );
 };
