@@ -75,6 +75,12 @@ export const transactionsAPI = {
   extend: (id, data) => api.post(`/transactions/${id}/extend`, data),
 };
 
+// Storage Visits API
+export const storageVisitsAPI = {
+  list: (params) => api.get('/storage-visits', { params }),
+  getByTransaction: (id) => api.get(`/storage-visits/${id}`),
+};
+
 // Users API
 export const usersAPI = {
   getAll: (params) => api.get('/users', { params }),

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { transactionsAPI, authAPI, guestRequestsAPI } from '../services/api';
+import { transactionsAPI, authAPI, guestRequestsAPI, storageVisitsAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { 
@@ -10,7 +10,8 @@ import {
   UserGroupIcon,
   ShoppingCartIcon,
   CubeIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  PhotoIcon
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -24,11 +25,13 @@ const AdminPanel = () => {
   const [recentActivity, setRecentActivity] = useState([]);
   const [loginActivity, setLoginActivity] = useState([]);
   const [guestRequests, setGuestRequests] = useState([]);
+  const [storageVisits, setStorageVisits] = useState([]);
   const [stats, setStats] = useState({
     pendingApprovals: 0,
     activeCheckouts: 0,
     totalUsers: 0,
-    overdueItems: 0
+    overdueItems: 0,
+    storageVisits: 0
   });
 
   useEffect(() => {
@@ -84,6 +87,21 @@ const AdminPanel = () => {
         if (gr.data.success) setGuestRequests(gr.data.data);
       } catch (e) {
         // ignore if endpoint unavailable
+      }
+
+      // Fetch storage visits/photos
+      try {
+        const visitsResponse = await storageVisitsAPI.list();
+        if (visitsResponse.data.success) {
+          setStorageVisits(visitsResponse.data.data || []);
+          setStats(prev => ({
+            ...prev,
+            storageVisits: visitsResponse.data.count ?? (visitsResponse.data.data || []).length
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching storage visits:', error);
+        // Non-blocking; just show toast once
       }
     } catch (error) {
       console.error('Error fetching admin data:', error);
@@ -217,6 +235,15 @@ const AdminPanel = () => {
             <ExclamationTriangleIcon className="w-12 h-12 text-red-500" />
           </div>
         </div>
+        <div className="card bg-purple-50 border-purple-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-purple-600 font-medium">Storage Photos</p>
+              <p className="text-3xl font-bold text-purple-900 mt-1">{stats.storageVisits}</p>
+            </div>
+            <PhotoIcon className="w-12 h-12 text-purple-500" />
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -266,6 +293,17 @@ const AdminPanel = () => {
             >
               <CubeIcon className="w-5 h-5 inline mr-2" />
               Guest Requests
+            </button>
+            <button
+              onClick={() => setActiveTab('photos')}
+              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'photos'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <PhotoIcon className="w-5 h-5 inline mr-2" />
+              Storage Photos
             </button>
           </nav>
         </div>
@@ -534,6 +572,94 @@ const AdminPanel = () => {
                     </div>
                   </div>
                 ))
+              )}
+            </div>
+          )}
+
+          {/* Storage Photos Tab */}
+          {activeTab === 'photos' && (
+            <div className="space-y-4">
+              {storageVisits.length === 0 ? (
+                <div className="text-center py-12">
+                  <PhotoIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Storage Photos Yet</h3>
+                  <p className="text-gray-600">
+                    When teams upload storage visit photos, they will appear here for quick review.
+                  </p>
+                </div>
+              ) : (
+                storageVisits.map((visit, index) => {
+                  const transaction = visit.transaction || {};
+                  const item = transaction.item || {};
+                  const visitUser = visit.user || visit.userId || transaction.user || {};
+                  const photos = visit.photos || [];
+
+                  const resolvePhotoUrl = (url) => {
+                    if (!url) return '';
+                    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+                    if (url.startsWith('/')) return url;
+                    return `/${url}`;
+                  };
+
+                  return (
+                    <div key={index} className="border rounded-xl p-5 bg-white shadow-sm">
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="badge badge-secondary uppercase">{visit.visitType || 'visit'}</span>
+                            {visit.verifiedBy && <span className="badge badge-success">Verified</span>}
+                          </div>
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {item.name || 'Unknown Item'}
+                          </h3>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Transaction: <span className="font-mono">{transaction.transactionNumber || transaction.id || 'N/A'}</span>
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            User: {visitUser.name || visitUser.email || 'Unknown'}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Visit Date: {visit.visitDate ? format(new Date(visit.visitDate), 'MMM dd, yyyy h:mm a') : 'N/A'}
+                          </p>
+                          {visit.notes && (
+                            <p className="text-sm text-gray-600 mt-2">
+                              <span className="font-medium">Notes:</span> {visit.notes}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => navigate(`/transactions/${transaction.id || transaction._id}`)}
+                          className="btn-secondary"
+                        >
+                          View Transaction
+                        </button>
+                      </div>
+
+                      {photos.length > 0 && (
+                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                          {photos.map((photo, idx) => (
+                            <div key={idx} className="group relative">
+                              <img
+                                src={resolvePhotoUrl(photo.url)}
+                                alt={photo.caption || `Storage visit photo ${idx + 1}`}
+                                className="h-32 w-full object-cover rounded-lg border border-gray-200 group-hover:border-blue-400 transition-colors cursor-pointer"
+                                onClick={() => window.open(resolvePhotoUrl(photo.url), '_blank')}
+                              />
+                              {photo.caption && (
+                                <p className="text-xs text-gray-600 mt-2 truncate">{photo.caption}</p>
+                              )}
+                              {photo.uploadDate && (
+                                <p className="text-2xs text-gray-400">
+                                  {format(new Date(photo.uploadDate), 'MMM dd, yyyy h:mm a')}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
               )}
             </div>
           )}

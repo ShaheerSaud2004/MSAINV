@@ -165,26 +165,27 @@ router.get('/', protect, checkPermission('canViewAnalytics'), async (req, res) =
     const storageService = getStorageService();
     const { startDate, endDate, userId, visitType } = req.query;
 
-    // Get all transactions with storage visits
-    const query = {
-      storageVisits: { $exists: true, $ne: [] }
-    };
-
-    if (startDate || endDate) {
-      query.createdAt = {};
-      if (startDate) query.createdAt.$gte = new Date(startDate);
-      if (endDate) query.createdAt.$lte = new Date(endDate);
-    }
-
+    // Build filter for transactions
+    const query = {};
     if (userId) {
       query.user = userId;
     }
 
-    const transactions = await storageService.getAllTransactions(query);
+    const transactions = await storageService.findAllTransactions(query);
     
     // Extract and flatten storage visits
     const allVisits = [];
     transactions.forEach(transaction => {
+      const visits = transaction.storageVisits || transaction.storage_visits || [];
+
+      // Filter by date range if provided
+      const transactionDate = transaction.createdAt || transaction.created_at;
+      if ((startDate || endDate) && transactionDate) {
+        const createdAt = new Date(transactionDate);
+        if (startDate && createdAt < new Date(startDate)) return;
+        if (endDate && createdAt > new Date(endDate)) return;
+      }
+
       if (transaction.storageVisits && transaction.storageVisits.length > 0) {
         transaction.storageVisits.forEach(visit => {
           if (!visitType || visit.visitType === visitType) {

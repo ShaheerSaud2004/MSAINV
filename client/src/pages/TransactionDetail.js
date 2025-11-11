@@ -15,6 +15,8 @@ const TransactionDetail = () => {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [copiedReturn, setCopiedReturn] = useState(false);
+  const [showReturnConfirm, setShowReturnConfirm] = useState(false);
+  const [submittingReturn, setSubmittingReturn] = useState(false);
 
   useEffect(() => {
     fetchTransaction();
@@ -58,20 +60,28 @@ const TransactionDetail = () => {
     }
   };
 
-  const handleReturn = async () => {
-    const hasMessaged = window.confirm('Before finishing, did you send the WhatsApp message with a photo of the item back in storage?');
-    if (!hasMessaged) {
-      toast.info('Please send the WhatsApp message first, then tap Mark as Returned.');
-      return;
-    }
+  const handleReturn = () => {
+    setShowReturnConfirm(true);
+  };
 
-    const notes = prompt('Any notes about the return? (Optional)');
+  const confirmReturn = async () => {
+    const notes = prompt('Any notes about the return? (Optional)') ?? '';
+
     try {
-      await transactionsAPI.return(id, { returnCondition: 'good', returnNotes: notes || '' });
-      toast.success('Return marked as complete!');
-      fetchTransaction();
+      setSubmittingReturn(true);
+      const response = await transactionsAPI.return(id, { returnCondition: 'good', returnNotes: notes });
+
+      if (response.data?.success) {
+        toast.success(response.data.message || 'Return marked as complete!');
+        setShowReturnConfirm(false);
+        fetchTransaction();
+      } else {
+        throw new Error(response.data?.message || 'Failed to mark return');
+      }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to mark return');
+      toast.error(error.response?.data?.message || error.message || 'Failed to mark return');
+    } finally {
+      setSubmittingReturn(false);
     }
   };
 
@@ -143,8 +153,9 @@ const TransactionDetail = () => {
           <button 
             onClick={handleReturn}
             className="btn-success"
+            disabled={submittingReturn}
           >
-            Mark as Returned
+            {submittingReturn ? 'Marking...' : 'Mark as Returned'}
           </button>
         )}
       </div>
@@ -297,7 +308,7 @@ const TransactionDetail = () => {
           </div>
         )}
 
-        {/* Return submission instructions */}
+        {/* Return instructions */}
         {transaction.status === 'active' && (
           <div className="mt-6 p-5 bg-gradient-to-r from-yellow-50 via-orange-50 to-amber-50 border-l-4 border-yellow-500 rounded-lg">
             <div className="flex items-start gap-4">
@@ -307,7 +318,7 @@ const TransactionDetail = () => {
               <div className="flex-1 space-y-3">
                 <h3 className="text-lg font-bold text-gray-900">📣 Final Step: Send a Photo in WhatsApp</h3>
                 <p className="text-gray-700">
-                  Snap a quick photo of the item back in storage, paste the message below in the Storage WhatsApp chat, then click <span className="font-semibold">Submit Return for Review</span>.
+                  Snap a quick photo of the item back in storage, paste the message below in the Storage WhatsApp chat, then click <span className="font-semibold">Mark as Returned</span>.
                 </p>
                 <div className="bg-white rounded-lg p-4 border-2 border-gray-200">
                   <p className="text-gray-800 whitespace-pre-wrap font-mono text-sm">
@@ -343,9 +354,10 @@ const TransactionDetail = () => {
                   <button
                     onClick={handleReturn}
                     className="btn-success flex items-center gap-2"
+                    disabled={submittingReturn}
                   >
                     <CheckCircleIcon className="w-5 h-5" />
-                    Submit Return for Review
+                    {submittingReturn ? 'Marking...' : 'Mark as Returned'}
                   </button>
                 </div>
               </div>
@@ -369,6 +381,35 @@ const TransactionDetail = () => {
           </div>
         )}
       </div>
+
+      {showReturnConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-5">
+            <h3 className="text-xl font-bold text-gray-900">Confirm WhatsApp Update</h3>
+            <p className="text-gray-700">
+              Please make sure you already sent a quick photo in the Storage WhatsApp chat showing the item back in storage. Once that&apos;s done, mark this return as complete.
+            </p>
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                className="btn-secondary w-full sm:w-auto"
+                onClick={() => setShowReturnConfirm(false)}
+                disabled={submittingReturn}
+              >
+                Not Yet
+              </button>
+              <button
+                type="button"
+                className="btn-success w-full sm:w-auto"
+                onClick={confirmReturn}
+                disabled={submittingReturn}
+              >
+                {submittingReturn ? 'Marking...' : 'Yes, Mark as Returned'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
