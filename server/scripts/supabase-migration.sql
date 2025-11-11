@@ -52,22 +52,55 @@ CREATE TABLE IF NOT EXISTS transactions (
   user_id UUID REFERENCES users(id) ON DELETE SET NULL,
   item_id UUID REFERENCES items(id) ON DELETE SET NULL,
   type VARCHAR(20) DEFAULT 'checkout' CHECK (type IN ('checkout', 'return', 'reserve')),
-  status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'active', 'returned', 'overdue', 'cancelled', 'rejected')),
+  status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'active', 'return_pending', 'returned', 'overdue', 'cancelled', 'rejected')),
   quantity INTEGER DEFAULT 1,
   purpose TEXT DEFAULT '',
   expected_return_date TIMESTAMP WITH TIME ZONE,
   actual_return_date TIMESTAMP WITH TIME ZONE,
   checkout_date TIMESTAMP WITH TIME ZONE,
   return_date TIMESTAMP WITH TIME ZONE,
+  checkout_condition VARCHAR(50) DEFAULT '',
+  return_condition VARCHAR(50) DEFAULT '',
   destination JSONB DEFAULT '{}',
   notes TEXT DEFAULT '',
-  condition_on_return VARCHAR(50) DEFAULT '',
+  return_notes TEXT DEFAULT '',
   penalty_amount DECIMAL(10, 2) DEFAULT 0,
   is_overdue BOOLEAN DEFAULT false,
   requires_storage_photo BOOLEAN DEFAULT false,
   storage_photo_uploaded BOOLEAN DEFAULT false,
+  storage_visits JSONB DEFAULT '[]',
+  return_review JSONB DEFAULT '{}'::jsonb,
+  checked_out_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  returned_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  approved_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  rejected_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  approved_date TIMESTAMP WITH TIME ZONE,
+  rejected_date TIMESTAMP WITH TIME ZONE,
+  return_confirmed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  return_confirmed_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Ensure new workflow columns exist (idempotent)
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS storage_visits JSONB DEFAULT '[]';
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS return_review JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS return_notes TEXT DEFAULT '';
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS checkout_condition VARCHAR(50) DEFAULT '';
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS return_condition VARCHAR(50) DEFAULT '';
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS checked_out_by UUID REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS returned_by UUID REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS approved_by UUID REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS rejected_by UUID REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS approved_date TIMESTAMP WITH TIME ZONE;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS rejected_date TIMESTAMP WITH TIME ZONE;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS return_confirmed_by UUID REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS return_confirmed_at TIMESTAMP WITH TIME ZONE;
+
+-- Update status constraint to include return_pending
+ALTER TABLE transactions DROP CONSTRAINT IF EXISTS transactions_status_check;
+ALTER TABLE transactions ADD CONSTRAINT transactions_status_check CHECK (
+  status IN ('pending', 'approved', 'active', 'return_pending', 'returned', 'overdue', 'cancelled', 'rejected')
 );
 
 -- Notifications Table
@@ -129,20 +162,45 @@ END;
 $$ language 'plpgsql';
 
 -- Add triggers for updated_at
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_trigger
+    WHERE tgname = 'update_users_updated_at'
+  ) THEN
+    CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  END IF;
 
-CREATE TRIGGER update_items_updated_at BEFORE UPDATE ON items
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_items_updated_at'
+  ) THEN
+    CREATE TRIGGER update_items_updated_at BEFORE UPDATE ON items
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  END IF;
 
-CREATE TRIGGER update_transactions_updated_at BEFORE UPDATE ON transactions
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_transactions_updated_at'
+  ) THEN
+    CREATE TRIGGER update_transactions_updated_at BEFORE UPDATE ON transactions
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  END IF;
 
-CREATE TRIGGER update_notifications_updated_at BEFORE UPDATE ON notifications
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_notifications_updated_at'
+  ) THEN
+    CREATE TRIGGER update_notifications_updated_at BEFORE UPDATE ON notifications
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  END IF;
 
-CREATE TRIGGER update_guest_requests_updated_at BEFORE UPDATE ON guest_requests
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_guest_requests_updated_at'
+  ) THEN
+    CREATE TRIGGER update_guest_requests_updated_at BEFORE UPDATE ON guest_requests
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+END $$;
 
 -- Enable Row Level Security (RLS) - Optional but recommended
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -153,9 +211,46 @@ ALTER TABLE guest_requests ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for public access (since we're using API key)
 -- You may want to customize these based on your security needs
-CREATE POLICY "Allow all operations" ON users FOR ALL USING (true);
-CREATE POLICY "Allow all operations" ON items FOR ALL USING (true);
-CREATE POLICY "Allow all operations" ON transactions FOR ALL USING (true);
-CREATE POLICY "Allow all operations" ON notifications FOR ALL USING (true);
-CREATE POLICY "Allow all operations" ON guest_requests FOR ALL USING (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE polname = 'Allow all operations'
+      AND tablename = 'users'
+  ) THEN
+    EXECUTE 'CREATE POLICY "Allow all operations" ON users FOR ALL USING (true);';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE polname = 'Allow all operations'
+      AND tablename = 'items'
+  ) THEN
+    EXECUTE 'CREATE POLICY "Allow all operations" ON items FOR ALL USING (true);';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE polname = 'Allow all operations'
+      AND tablename = 'transactions'
+  ) THEN
+    EXECUTE 'CREATE POLICY "Allow all operations" ON transactions FOR ALL USING (true);';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE polname = 'Allow all operations'
+      AND tablename = 'notifications'
+  ) THEN
+    EXECUTE 'CREATE POLICY "Allow all operations" ON notifications FOR ALL USING (true);';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE polname = 'Allow all operations'
+      AND tablename = 'guest_requests'
+  ) THEN
+    EXECUTE 'CREATE POLICY "Allow all operations" ON guest_requests FOR ALL USING (true);';
+  END IF;
+END $$;
 
