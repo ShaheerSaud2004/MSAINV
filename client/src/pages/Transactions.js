@@ -50,8 +50,7 @@ const Transactions = () => {
       returned: 'badge-gray',
       cancelled: 'badge-gray',
       approved: 'badge-success',
-      rejected: 'badge-danger',
-      return_pending: 'badge-warning'
+      rejected: 'badge-danger'
     };
     return badges[status] || 'badge-gray';
   };
@@ -85,7 +84,6 @@ const Transactions = () => {
               <option value="pending">Pending</option>
               <option value="active">Active</option>
               <option value="overdue">Overdue</option>
-              <option value="return_pending">Return Pending Review</option>
               <option value="returned">Returned</option>
               <option value="cancelled">Cancelled</option>
             </select>

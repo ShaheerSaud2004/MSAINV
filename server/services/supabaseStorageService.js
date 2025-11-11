@@ -571,14 +571,6 @@ class SupabaseStorageService {
       normalized.storage_photo_uploaded = normalized.storagePhotoUploaded;
       delete normalized.storagePhotoUploaded;
     }
-    if (normalized.storageVisits !== undefined) {
-      normalized.storage_visits = normalized.storageVisits;
-      delete normalized.storageVisits;
-    }
-    if (normalized.returnReview !== undefined) {
-      normalized.return_review = normalized.returnReview;
-      delete normalized.returnReview;
-    }
     if (normalized.isOverdue !== undefined) {
       normalized.is_overdue = normalized.isOverdue;
       delete normalized.isOverdue;
@@ -590,16 +582,6 @@ class SupabaseStorageService {
     if (normalized.returnedBy !== undefined) {
       normalized.returned_by = normalized.returnedBy;
       delete normalized.returnedBy;
-    }
-    if (normalized.returnConfirmedBy !== undefined) {
-      normalized.return_confirmed_by = normalized.returnConfirmedBy;
-      delete normalized.returnConfirmedBy;
-    }
-    if (normalized.returnConfirmedAt !== undefined) {
-      normalized.return_confirmed_at = normalized.returnConfirmedAt instanceof Date
-        ? normalized.returnConfirmedAt.toISOString()
-        : normalized.returnConfirmedAt;
-      delete normalized.returnConfirmedAt;
     }
     if (normalized.approvedBy !== undefined) {
       normalized.approved_by = normalized.approvedBy;
@@ -723,13 +705,9 @@ class SupabaseStorageService {
       approvalRequired: transaction.approval_required ?? transaction.approvalRequired ?? false,
       requiresStoragePhoto: transaction.requires_storage_photo ?? transaction.requiresStoragePhoto ?? false,
       storagePhotoUploaded: transaction.storage_photo_uploaded ?? transaction.storagePhotoUploaded ?? false,
-      storageVisits: transaction.storage_visits || transaction.storageVisits || [],
-      returnReview: transaction.return_review || transaction.returnReview || null,
       isOverdue: transaction.is_overdue ?? transaction.isOverdue ?? false,
       checkedOutBy: transaction.checked_out_by || transaction.checkedOutBy,
       returnedBy: transaction.returned_by || transaction.returnedBy,
-      returnConfirmedBy: transaction.return_confirmed_by || transaction.returnConfirmedBy || null,
-      returnConfirmedAt: transaction.return_confirmed_at || transaction.returnConfirmedAt || null,
       approvedBy: transaction.approved_by || transaction.approvedBy,
       rejectedBy: transaction.rejected_by || transaction.rejectedBy,
       scannedViaQR: transaction.scanned_via_qr ?? transaction.scannedViaQR ?? false,

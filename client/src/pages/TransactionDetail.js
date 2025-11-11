@@ -59,29 +59,19 @@ const TransactionDetail = () => {
   };
 
   const handleReturn = async () => {
-    const hasMessaged = window.confirm('Have you copied the WhatsApp message and posted it in the Storage chat?');
+    const hasMessaged = window.confirm('Before finishing, did you send the WhatsApp message with a photo of the item back in storage?');
     if (!hasMessaged) {
-      toast.info('Please copy the message and notify the storage lead before submitting.');
+      toast.info('Please send the WhatsApp message first, then tap Mark as Returned.');
       return;
     }
 
     const notes = prompt('Any notes about the return? (Optional)');
     try {
       await transactionsAPI.return(id, { returnCondition: 'good', returnNotes: notes || '' });
-      toast.success('Return submitted for admin review!');
+      toast.success('Return marked as complete!');
       fetchTransaction();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to submit return');
-    }
-  };
-
-  const handleConfirmReturn = async () => {
-    try {
-      await transactionsAPI.confirmReturn(id, {});
-      toast.success('Return confirmed');
-      fetchTransaction();
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to confirm return');
+      toast.error(error.response?.data?.message || 'Failed to mark return');
     }
   };
 
@@ -119,7 +109,7 @@ const TransactionDetail = () => {
     const userName = transaction.user?.name || user?.name || 'I';
     const transactionNumber = transaction.transactionNumber || id;
 
-    return `Hi Maimuna, ${userName} here. I just returned ${quantity} ${itemName}${quantity > 1 ? 's' : ''} for transaction ${transactionNumber}. Photos are uploaded and the return form is submitted for review. Thank you!`;
+    return `Hi Maimuna, ${userName} here. I just returned ${quantity} ${itemName}${quantity > 1 ? 's' : ''} for transaction ${transactionNumber}. Photos are shared in the chat and the item is back in storage. Thank you!`;
   };
 
   const handleCopyToClipboard = async () => {
@@ -154,15 +144,7 @@ const TransactionDetail = () => {
             onClick={handleReturn}
             className="btn-success"
           >
-            Submit Return for Review
-          </button>
-        )}
-        {hasPermission('canApprove') && transaction.status === 'return_pending' && (
-          <button
-            onClick={handleConfirmReturn}
-            className="btn-success"
-          >
-            Approve Return
+            Mark as Returned
           </button>
         )}
       </div>
@@ -371,16 +353,16 @@ const TransactionDetail = () => {
           </div>
         )}
 
-        {transaction.status === 'return_pending' && (
+        {transaction.status === 'returned' && (
           <div className="mt-6 p-5 bg-blue-50 border-l-4 border-blue-500 rounded-lg">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
                 <CheckCircleIcon className="w-8 h-8 text-blue-600" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Return Submitted!</h3>
+                <h3 className="text-lg font-bold text-gray-900">Return Completed!</h3>
                 <p className="text-gray-700 mt-1">
-                  An admin has been notified to review your photos and close out this transaction. You&apos;ll receive a notification once it&apos;s approved.
+                  Thanks for closing the loop and letting the Storage WhatsApp chat know. The item is marked as back in storage.
                 </p>
               </div>
             </div>
