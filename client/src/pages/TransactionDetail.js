@@ -15,6 +15,7 @@ const TransactionDetail = () => {
   const [transaction, setTransaction] = useState(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [copiedReturn, setCopiedReturn] = useState(false);
 
   useEffect(() => {
     fetchTransaction();
@@ -59,13 +60,34 @@ const TransactionDetail = () => {
   };
 
   const handleReturn = async () => {
-    const notes = prompt('Any notes about the return?');
+    if (!transaction.storagePhotoUploaded) {
+      toast.error('Upload storage visit photos before submitting the return.');
+      return;
+    }
+
+    const hasMessaged = window.confirm('Have you copied the WhatsApp message and posted it in the Storage chat?');
+    if (!hasMessaged) {
+      toast.info('Please copy the message and notify the storage lead before submitting.');
+      return;
+    }
+
+    const notes = prompt('Any notes about the return? (Optional)');
     try {
       await transactionsAPI.return(id, { returnCondition: 'good', returnNotes: notes || '' });
-      toast.success('Item returned successfully');
+      toast.success('Return submitted for admin review!');
       fetchTransaction();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to return item');
+      toast.error(error.response?.data?.message || 'Failed to submit return');
+    }
+  };
+
+  const handleConfirmReturn = async () => {
+    try {
+      await transactionsAPI.confirmReturn(id, {});
+      toast.success('Return confirmed');
+      fetchTransaction();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to confirm return');
     }
   };
 
@@ -93,6 +115,17 @@ const TransactionDetail = () => {
       : 'the requested date';
     
     return `Hi Maimuna, my name is ${userName}${team ? ` from ${team}` : ''}, and I want to checkout ${quantity} ${itemName}${quantity > 1 ? 's' : ''} for ${purpose} on ${eventDate}. I want to check it out and go to storage. Please review the request and let me know.`;
+  };
+
+  const generateReturnWhatsAppMessage = () => {
+    if (!transaction) return '';
+
+    const itemName = transaction.item?.name || 'the item';
+    const quantity = transaction.quantity;
+    const userName = transaction.user?.name || user?.name || 'I';
+    const transactionNumber = transaction.transactionNumber || id;
+
+    return `Hi Maimuna, ${userName} here. I just returned ${quantity} ${itemName}${quantity > 1 ? 's' : ''} for transaction ${transactionNumber}. Photos are uploaded and the return form is submitted for review. Thank you!`;
   };
 
   const handleCopyToClipboard = async () => {
@@ -136,7 +169,15 @@ const TransactionDetail = () => {
             className="btn-success"
             disabled={!transaction.storagePhotoUploaded}
           >
-            {transaction.storagePhotoUploaded ? 'Mark as Returned' : 'Upload Photos First'}
+            {transaction.storagePhotoUploaded ? 'Submit Return for Review' : 'Upload Photos First'}
+          </button>
+        )}
+        {hasPermission('canApprove') && transaction.status === 'return_pending' && (
+          <button
+            onClick={handleConfirmReturn}
+            className="btn-success"
+          >
+            Approve Return
           </button>
         )}
       </div>
@@ -284,6 +325,85 @@ const TransactionDetail = () => {
                     </>
                   )}
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Return submission instructions */}
+        {transaction.status === 'active' && transaction.storagePhotoUploaded && (
+          <div className="mt-6 p-5 bg-gradient-to-r from-yellow-50 via-orange-50 to-amber-50 border-l-4 border-yellow-500 rounded-lg">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <ClipboardDocumentIcon className="w-8 h-8 text-yellow-600" />
+              </div>
+              <div className="flex-1 space-y-3">
+                <h3 className="text-lg font-bold text-gray-900">📣 Final Step: Notify Storage Chat & Submit Return</h3>
+                <p className="text-gray-700">
+                  Copy the message below, send it in the Storage WhatsApp chat, then click <span className="font-semibold">Submit Return for Review</span>.
+                </p>
+                <div className="bg-white rounded-lg p-4 border-2 border-gray-200">
+                  <p className="text-gray-800 whitespace-pre-wrap font-mono text-sm">
+                    {generateReturnWhatsAppMessage()}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(generateReturnWhatsAppMessage());
+                        setCopiedReturn(true);
+                        toast.success('Return message copied!');
+                        setTimeout(() => setCopiedReturn(false), 2000);
+                      } catch (error) {
+                        toast.error('Failed to copy message. Please copy manually.');
+                      }
+                    }}
+                    className="btn-primary flex items-center gap-2"
+                  >
+                    {copiedReturn ? (
+                      <>
+                        <CheckIcon className="w-5 h-5" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <ClipboardDocumentIcon className="w-5 h-5" />
+                        Copy Return Message
+                      </>
+                    )}
+                  </button>
+                  <Link
+                    to={`/storage-visit/${id}`}
+                    className="btn-secondary flex items-center gap-2"
+                  >
+                    <CameraIcon className="w-5 h-5" />
+                    Review Uploaded Photos
+                  </Link>
+                  <button
+                    onClick={handleReturn}
+                    className="btn-success flex items-center gap-2"
+                  >
+                    <CheckCircleIcon className="w-5 h-5" />
+                    Submit Return for Review
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {transaction.status === 'return_pending' && (
+          <div className="mt-6 p-5 bg-blue-50 border-l-4 border-blue-500 rounded-lg">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <CheckCircleIcon className="w-8 h-8 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Return Submitted!</h3>
+                <p className="text-gray-700 mt-1">
+                  An admin has been notified to review your photos and close out this transaction. You&apos;ll receive a notification once it&apos;s approved.
+                </p>
               </div>
             </div>
           </div>

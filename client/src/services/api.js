@@ -70,6 +70,7 @@ export const transactionsAPI = {
   getById: (id) => api.get(`/transactions/${id}`),
   checkout: (data) => api.post('/transactions/checkout', data),
   return: (id, data) => api.post(`/transactions/${id}/return`, data),
+  confirmReturn: (id, data) => api.post(`/transactions/${id}/confirm-return`, data),
   approve: (id) => api.post(`/transactions/${id}/approve`),
   reject: (id, data) => api.post(`/transactions/${id}/reject`, data),
   extend: (id, data) => api.post(`/transactions/${id}/extend`, data),

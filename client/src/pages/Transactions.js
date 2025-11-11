@@ -50,9 +50,18 @@ const Transactions = () => {
       returned: 'badge-gray',
       cancelled: 'badge-gray',
       approved: 'badge-success',
-      rejected: 'badge-danger'
+      rejected: 'badge-danger',
+      return_pending: 'badge-warning'
     };
     return badges[status] || 'badge-gray';
+  };
+
+  const formatStatus = (status) => {
+    if (!status) return '';
+    return status
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   };
 
   return (
@@ -76,6 +85,7 @@ const Transactions = () => {
               <option value="pending">Pending</option>
               <option value="active">Active</option>
               <option value="overdue">Overdue</option>
+              <option value="return_pending">Return Pending Review</option>
               <option value="returned">Returned</option>
               <option value="cancelled">Cancelled</option>
             </select>
@@ -132,7 +142,7 @@ const Transactions = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`badge ${getStatusBadge(transaction.status)}`}>
-                      {transaction.status}
+                      {formatStatus(transaction.status)}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

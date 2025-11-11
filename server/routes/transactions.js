@@ -355,67 +355,78 @@ router.post('/:id/return', protect, checkPermission('canReturn'), [
     const expectedReturn = new Date(transaction.expectedReturnDate);
     const isOverdue = now > expectedReturn;
 
-    const updates = {
-      status: 'returned',
+    const returnData = {
+      status: 'return_pending',
       actualReturnDate: now,
       returnCondition: returnCondition || 'good',
       returnNotes: returnNotes || '',
-      returnedBy: userId
+      returnedBy: userId,
+      returnReview: {
+        status: 'pending',
+        requestedBy: userId,
+        requestedAt: now,
+        isOverdue,
+        notes: returnNotes || '',
+        condition: returnCondition || 'good'
+      }
     };
 
-    // Apply penalty if overdue
+    // Preserve overdue flag for admins to review
     if (isOverdue) {
-      updates.isOverdue = true;
-      const daysOverdue = Math.ceil((now - expectedReturn) / (1000 * 60 * 60 * 24));
-      const penaltyAmount = daysOverdue * 5; // $5 per day
+      returnData.isOverdue = true;
+    }
 
-      updates.penalties = transaction.penalties || [];
-      updates.penalties.push({
-        type: 'late_fee',
-        amount: penaltyAmount,
-        currency: 'USD',
-        reason: `Item returned ${daysOverdue} day(s) late`,
-        issuedDate: now,
-        issuedBy: userId,
-        isPaid: false
+    const updated = await storageService.updateTransaction(req.params.id, returnData);
+
+    if (!updated) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to submit return review'
       });
     }
 
-    await storageService.updateTransaction(req.params.id, updates);
-
-    // Update item available quantity
-    const itemId = transaction.item._id || transaction.item.id || transaction.item;
-    const item = await storageService.findItemById(itemId);
-    
-    if (item) {
-      await storageService.updateItem(itemId, {
-        availableQuantity: item.availableQuantity + transaction.quantity
+    // Notify managers for final approval (non-blocking)
+    try {
+      await notifyManagers({
+        type: 'return_review',
+        title: 'Return Ready for Review',
+        message: `${req.user.name} submitted a return for ${transaction.quantity} unit(s) of ${transaction.item?.name || 'an item'}`,
+        priority: 'high',
+        relatedTransaction: req.params.id,
+        relatedItem: transaction.item._id || transaction.item.id || transaction.item,
+        actionUrl: `/transactions/${req.params.id}`,
+        actionText: 'Review Return'
       });
+    } catch (notifError) {
+      console.error('Return review notification error (non-critical):', notifError);
     }
 
-    // Send return confirmation
-    await createNotification({
-      recipient: transactionUserId,
-      type: 'checkout_confirmation',
-      title: 'Return Confirmed',
-      message: `You have successfully returned ${transaction.quantity} unit(s)`,
-      priority: isOverdue ? 'high' : 'medium',
-      channels: {
-        email: true,
-        sms: false,
-        push: true,
-        inApp: true
-      },
-      relatedTransaction: req.params.id,
-      relatedItem: itemId,
-      actionUrl: `/transactions/${req.params.id}`,
-      actionText: 'View Transaction'
-    });
+    // Notify user that admin review is pending
+    try {
+      await createNotification({
+        recipient: transactionUserId,
+        type: 'return_submitted',
+        title: 'Return Submitted for Review',
+        message: 'Great job! Your return has been submitted. An admin will review and finalize it shortly.',
+        priority: isOverdue ? 'high' : 'medium',
+        channels: {
+          email: true,
+          sms: false,
+          push: true,
+          inApp: true
+        },
+        relatedTransaction: req.params.id,
+        relatedItem: transaction.item._id || transaction.item.id || transaction.item,
+        actionUrl: `/transactions/${req.params.id}`,
+        actionText: 'View Return Status'
+      });
+    } catch (notifError) {
+      console.error('Return user notification error (non-critical):', notifError);
+    }
 
     res.json({
       success: true,
-      message: 'Item returned successfully' + (isOverdue ? ' (overdue penalty applied)' : ''),
-      data: await storageService.findTransactionById(req.params.id)
+      message: 'Return submitted for admin review'
     });
   } catch (error) {
     console.error('Return error:', error);
@@ -714,6 +725,106 @@ router.post('/:id/extend', protect, [
     res.status(500).json({
       success: false,
       message: 'Error requesting extension',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /api/transactions/:id/confirm-return
+// @desc    Finalize a return after admin review
+// @access  Private (requires canApprove permission)
+router.post('/:id/confirm-return', protect, checkPermission('canApprove'), async (req, res) => {
+  try {
+    const storageService = getStorageService();
+    const userId = req.user._id || req.user.id;
+
+    const transaction = await storageService.findTransactionById(req.params.id);
+
+    if (!transaction) {
+      return res.status(404).json({
+        success: false,
+        message: 'Transaction not found'
+      });
+    }
+
+    if (transaction.status !== 'return_pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only returns pending review can be confirmed'
+      });
+    }
+
+    const itemId = transaction.item._id || transaction.item.id || transaction.item;
+    const item = await storageService.findItemById(itemId);
+
+    if (!item) {
+      return res.status(404).json({
+        success: false,
+        message: 'Item not found'
+      });
+    }
+
+    const now = new Date();
+    const updates = {
+      status: 'returned',
+      returnReview: {
+        ...(transaction.returnReview || {}),
+        status: 'approved',
+        reviewedBy: userId,
+        reviewedAt: now
+      },
+      returnConfirmedBy: userId,
+      returnConfirmedAt: now
+    };
+
+    const updateResult = await storageService.updateTransaction(req.params.id, updates);
+
+    if (!updateResult) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to confirm return'
+      });
+    }
+
+    // Update inventory
+    await storageService.updateItem(itemId, {
+      availableQuantity: item.availableQuantity + transaction.quantity
+    });
+
+    // Notify user
+    try {
+      const transactionUserId = transaction.user._id || transaction.user.id || transaction.user;
+      await createNotification({
+        recipient: transactionUserId,
+        type: 'return_confirmed',
+        title: 'Return Approved',
+        message: `Your return for ${transaction.item?.name || 'an item'} has been approved. Thank you!`,
+        priority: 'medium',
+        channels: {
+          email: true,
+          sms: false,
+          push: true,
+          inApp: true
+        },
+        relatedTransaction: req.params.id,
+        relatedItem: itemId,
+        actionUrl: `/transactions/${req.params.id}`,
+        actionText: 'View Return'
+      });
+    } catch (notifError) {
+      console.error('Return confirmation notification error (non-critical):', notifError);
+    }
+
+    res.json({
+      success: true,
+      message: 'Return confirmed successfully',
+      data: await storageService.findTransactionById(req.params.id)
+    });
+  } catch (error) {
+    console.error('Confirm return error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error confirming return',
       error: error.message
     });
   }
