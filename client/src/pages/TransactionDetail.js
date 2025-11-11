@@ -71,13 +71,13 @@ const TransactionDetail = () => {
       setSubmittingReturn(true);
       const response = await transactionsAPI.return(id, { returnCondition: 'good', returnNotes: notes });
 
-      if (response.data?.success) {
-        toast.success(response.data.message || 'Return marked as complete!');
-        setShowReturnConfirm(false);
-        fetchTransaction();
-      } else {
+      if (!response.data?.success) {
         throw new Error(response.data?.message || 'Failed to mark return');
       }
+
+      toast.success(response.data.message || 'Return marked as complete!');
+      setShowReturnConfirm(false);
+      await fetchTransaction();
     } catch (error) {
       toast.error(error.response?.data?.message || error.message || 'Failed to mark return');
     } finally {
