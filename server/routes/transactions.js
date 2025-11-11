@@ -371,55 +371,91 @@ router.post('/:id/return', protect, checkPermission('canReturn'), [
       });
     }
 
-    const updatedTransaction = await storageService.updateTransaction(req.params.id, updates);
-
-    if (!updatedTransaction || updatedTransaction.status !== 'returned') {
+    let updatedTransaction;
+    try {
+      updatedTransaction = await storageService.updateTransaction(req.params.id, updates);
+    } catch (updateError) {
+      console.error('Database update error:', updateError);
       return res.status(500).json({
         success: false,
-        message: 'Failed to update transaction status'
+        message: 'Failed to update transaction in database: ' + updateError.message
       });
     }
 
-    // Update item available quantity
+    if (!updatedTransaction) {
+      console.error('Transaction update returned null');
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to update transaction in database'
+      });
+    }
+
+    // Check status - ensure it was updated correctly
+    const updatedStatus = updatedTransaction.status;
+    if (updatedStatus !== 'returned') {
+      console.error('Transaction status mismatch:', {
+        expected: 'returned',
+        actual: updatedStatus,
+        transactionId: req.params.id,
+        transaction: updatedTransaction
+      });
+      return res.status(500).json({
+        success: false,
+        message: `Transaction update incomplete. Status is '${updatedStatus}' instead of 'returned'`
+      });
+    }
+
+    // Update item available quantity (don't fail return if this fails)
     const itemId = transaction.item._id || transaction.item.id || transaction.item;
-    const item = await storageService.findItemById(itemId);
-    
-    if (item) {
-      const currentAvailable = Number(
-        item.availableQuantity ??
-        item.available_quantity ??
-        0
-      );
-      const quantityReturned = Number(transaction.quantity ?? 0);
+    try {
+      const item = await storageService.findItemById(itemId);
+      
+      if (item) {
+        const currentAvailable = Number(
+          item.availableQuantity ??
+          item.available_quantity ??
+          0
+        );
+        const quantityReturned = Number(transaction.quantity ?? 0);
 
-      await storageService.updateItem(itemId, {
-        availableQuantity: currentAvailable + quantityReturned
-      });
+        await storageService.updateItem(itemId, {
+          availableQuantity: currentAvailable + quantityReturned
+        });
+      }
+    } catch (itemUpdateError) {
+      console.error('Item quantity update error (non-critical):', itemUpdateError);
+      // Don't fail the return if item update fails - transaction is already marked as returned
     }
 
-    // Send return confirmation
-    await createNotification({
-      recipient: transactionUserId,
-      type: 'return_confirmed',
-      title: 'Return Confirmed',
-      message: `You have successfully returned ${transaction.quantity} unit(s). Thanks for sharing the storage photo in WhatsApp!`,
-      priority: isOverdue ? 'high' : 'medium',
-      channels: {
-        email: true,
-        sms: false,
-        push: true,
-        inApp: true
-      },
-      relatedTransaction: req.params.id,
-      relatedItem: itemId,
-      actionUrl: `/transactions/${req.params.id}`,
-      actionText: 'View Transaction'
-    });
+    // Send return confirmation (don't fail if notification fails)
+    try {
+      await createNotification({
+        recipient: transactionUserId,
+        type: 'return_confirmed',
+        title: 'Return Confirmed',
+        message: `You have successfully returned ${transaction.quantity} unit(s). Thanks for sharing the storage photo in WhatsApp!`,
+        priority: isOverdue ? 'high' : 'medium',
+        channels: {
+          email: true,
+          sms: false,
+          push: true,
+          inApp: true
+        },
+        relatedTransaction: req.params.id,
+        relatedItem: itemId,
+        actionUrl: `/transactions/${req.params.id}`,
+        actionText: 'View Transaction'
+      });
+    } catch (notifError) {
+      console.error('Notification error (non-critical):', notifError);
+      // Don't fail the return if notification fails
+    }
 
+    // Return the updated transaction we already have
     res.json({
       success: true,
       message: 'Item returned successfully' + (isOverdue ? ' (overdue penalty applied)' : ''),
-      data: await storageService.findTransactionById(req.params.id)
+      data: updatedTransaction
     });
   } catch (error) {
     console.error('Return error:', error);

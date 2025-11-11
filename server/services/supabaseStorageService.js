@@ -750,11 +750,29 @@ class SupabaseStorageService {
     if (error) {
       console.error('Error updating transaction:', error);
       console.error('Update data:', JSON.stringify(updateData, null, 2));
-      return null;
+      console.error('Transaction ID:', id);
+      // Throw error so route can catch and handle properly
+      throw new Error(`Supabase update failed: ${error.message || JSON.stringify(error)}`);
+    }
+    
+    if (!data) {
+      console.error('Supabase update returned no data');
+      throw new Error('Transaction update returned no data from database');
     }
     
     // Transform back to camelCase
-    return this.normalizeTransaction(data);
+    const normalizedTransaction = this.normalizeTransaction(data);
+    
+    // Verify status was set correctly
+    if (updates.status && normalizedTransaction.status !== updates.status) {
+      console.warn('Status mismatch after normalization:', {
+        expected: updates.status,
+        actual: normalizedTransaction.status,
+        rawData: data.status
+      });
+    }
+    
+    return normalizedTransaction;
   }
 
   async findAllTransactions(query = {}) {
