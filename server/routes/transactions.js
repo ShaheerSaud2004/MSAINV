@@ -371,7 +371,14 @@ router.post('/:id/return', protect, checkPermission('canReturn'), [
       });
     }
 
-    await storageService.updateTransaction(req.params.id, updates);
+    const updatedTransaction = await storageService.updateTransaction(req.params.id, updates);
+
+    if (!updatedTransaction || updatedTransaction.status !== 'returned') {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to update transaction status'
+      });
+    }
 
     // Update item available quantity
     const itemId = transaction.item._id || transaction.item.id || transaction.item;
@@ -393,9 +400,9 @@ router.post('/:id/return', protect, checkPermission('canReturn'), [
     // Send return confirmation
     await createNotification({
       recipient: transactionUserId,
-      type: 'checkout_confirmation',
+      type: 'return_confirmed',
       title: 'Return Confirmed',
-      message: `You have successfully returned ${transaction.quantity} unit(s). Make sure you notified the storage chat.`,
+      message: `You have successfully returned ${transaction.quantity} unit(s). Thanks for sharing the storage photo in WhatsApp!`,
       priority: isOverdue ? 'high' : 'medium',
       channels: {
         email: true,
