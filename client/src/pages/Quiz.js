@@ -205,28 +205,6 @@ const Quiz = () => {
     navigate('/tutorial');
   };
 
-  const handleSkip = () => {
-    if (window.confirm('Are you sure you want to skip the quiz? This will grant you access to the system.')) {
-      // Mark quiz as passed (skip)
-      const quizData = {
-        userId: user?._id || user?.id,
-        role: user?.role,
-        score: 100,
-        passed: true,
-        completedAt: new Date().toISOString(),
-        permanent: true,
-        skipped: true
-      };
-
-      localStorage.setItem('quiz_completed', JSON.stringify(quizData));
-      toast.success('Quiz skipped. Access granted.');
-      
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 1000);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
       <div className="max-w-4xl mx-auto">
@@ -344,14 +322,6 @@ const Quiz = () => {
               >
                 Review Tutorial
               </button>
-              {!submitted && (
-                <button
-                  onClick={handleSkip}
-                  className="px-6 py-3 bg-yellow-500 text-white rounded-lg font-medium hover:bg-yellow-600 transition-all"
-                >
-                  Skip Quiz
-                </button>
-              )}
             </div>
 
             {!submitted ? (

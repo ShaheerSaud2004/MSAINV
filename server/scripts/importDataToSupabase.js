@@ -21,6 +21,13 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
+const { v4: uuidv4 } = require('uuid');
+
+// Helper to check if a string is a valid UUID
+function isValidUUID(str) {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
 
 // Helper to convert camelCase to snake_case
 function toSnakeCase(str) {
@@ -38,7 +45,14 @@ function convertToSnakeCase(obj) {
     
     // Handle special cases
     if (key === '_id' || key === 'id') {
-      converted.id = value;
+      // Only use value if it's a valid UUID, otherwise generate new one
+      if (value && isValidUUID(value)) {
+        converted.id = value;
+      } else if (value) {
+        // Invalid UUID - generate new one (will be set by Supabase if not provided)
+        converted.id = uuidv4();
+      }
+      // If no value, let Supabase generate it
     } else if (key === 'qrCode') {
       converted.qr_code = value;
     } else if (key === 'subCategory') {
@@ -54,15 +68,20 @@ function convertToSnakeCase(obj) {
     } else if (key === 'transactionNumber') {
       converted.transaction_number = value;
     } else if (key === 'user' || key === 'userId') {
-      converted.user_id = value?._id || value?.id || value;
+      const userId = value?._id || value?.id || value;
+      converted.user_id = (userId && isValidUUID(userId)) ? userId : null;
     } else if (key === 'item' || key === 'itemId') {
-      converted.item_id = value?._id || value?.id || value;
+      const itemId = value?._id || value?.id || value;
+      converted.item_id = (itemId && isValidUUID(itemId)) ? itemId : null;
     } else if (key === 'recipient' || key === 'recipientId') {
-      converted.recipient_id = value?._id || value?.id || value;
+      const recipientId = value?._id || value?.id || value;
+      converted.recipient_id = (recipientId && isValidUUID(recipientId)) ? recipientId : null;
     } else if (key === 'relatedTransaction') {
-      converted.related_transaction = value?._id || value?.id || value;
+      const txId = value?._id || value?.id || value;
+      converted.related_transaction = (txId && isValidUUID(txId)) ? txId : null;
     } else if (key === 'relatedItem') {
-      converted.related_item = value?._id || value?.id || value;
+      const itemId = value?._id || value?.id || value;
+      converted.related_item = (itemId && isValidUUID(itemId)) ? itemId : null;
     } else if (key === 'expectedReturnDate') {
       converted.expected_return_date = value;
     } else if (key === 'actualReturnDate') {
@@ -105,6 +124,30 @@ function convertToSnakeCase(obj) {
       converted.expected_date = value;
     } else if (key === 'lastLogin') {
       converted.last_login = value;
+    } else if (key === 'createdBy') {
+      const createdById = value?._id || value?.id || value;
+      converted.created_by = (createdById && isValidUUID(createdById)) ? createdById : null;
+    } else if (key === 'lastModifiedBy') {
+      const lastModifiedById = value?._id || value?.id || value;
+      converted.last_modified_by = (lastModifiedById && isValidUUID(lastModifiedById)) ? lastModifiedById : null;
+    } else if (key === 'metadata') {
+      converted.metadata = value;
+    } else if (key === 'readAt' || key === 'read_at') {
+      converted.read_at = value;
+    } else if (key === 'photos') {
+      converted.photos = value;
+    } else if (key === 'approvedBy') {
+      const approvedById = value?._id || value?.id || value;
+      converted.approved_by = (approvedById && isValidUUID(approvedById)) ? approvedById : null;
+    } else if (key === 'rejectedBy') {
+      const rejectedById = value?._id || value?.id || value;
+      converted.rejected_by = (rejectedById && isValidUUID(rejectedById)) ? rejectedById : null;
+    } else if (key === 'checkedOutBy') {
+      const checkedOutById = value?._id || value?.id || value;
+      converted.checked_out_by = (checkedOutById && isValidUUID(checkedOutById)) ? checkedOutById : null;
+    } else if (key === 'returnedBy') {
+      const returnedById = value?._id || value?.id || value;
+      converted.returned_by = (returnedById && isValidUUID(returnedById)) ? returnedById : null;
     } else {
       converted[snakeKey] = Array.isArray(value) || typeof value === 'object' 
         ? convertToSnakeCase(value) 
@@ -150,10 +193,13 @@ async function importUsers() {
         const converted = convertToSnakeCase(user);
         // Ensure password is hashed (if not already)
         if (converted.password && !converted.password.startsWith('$2')) {
-          // Password is not hashed, need to hash it
-          // For now, skip or set a default
+          // Password is not hashed, skip this user
           console.warn(`   Warning: User ${converted.email} has unhashed password, skipping...`);
           return null;
+        }
+        // If ID is invalid UUID, remove it to let Supabase generate
+        if (converted.id && !isValidUUID(converted.id)) {
+          delete converted.id;
         }
         return converted;
       }).filter(Boolean);
@@ -213,7 +259,17 @@ async function importItems() {
     const batchSize = 20;
     for (let i = 0; i < itemsToImport.length; i += batchSize) {
       const batch = itemsToImport.slice(i, i + batchSize);
-      const convertedBatch = batch.map(item => convertToSnakeCase(item));
+      const convertedBatch = batch.map(item => {
+        const converted = convertToSnakeCase(item);
+        // If ID is invalid UUID, remove it to let Supabase generate
+        if (converted.id && !isValidUUID(converted.id)) {
+          delete converted.id;
+        }
+        // Remove fields that don't exist in schema
+        delete converted.createdBy;
+        delete converted.lastModifiedBy;
+        return converted;
+      });
       
       const { error } = await supabase.from('items').insert(convertedBatch);
       if (error) {
@@ -264,15 +320,42 @@ async function importTransactions() {
     
     console.log(`   Importing ${transactionsToImport.length} new transactions...`);
     
+    // Get all existing item IDs to validate foreign keys
+    const { data: existingItems } = await supabase.from('items').select('id');
+    const existingItemIds = new Set((existingItems || []).map(i => i.id));
+    
     // Import in batches
     const batchSize = 20;
     for (let i = 0; i < transactionsToImport.length; i += batchSize) {
       const batch = transactionsToImport.slice(i, i + batchSize);
-      const convertedBatch = batch.map(t => convertToSnakeCase(t));
+      const convertedBatch = batch.map(t => {
+        const converted = convertToSnakeCase(t);
+        // If ID is invalid UUID, remove it to let Supabase generate
+        if (converted.id && !isValidUUID(converted.id)) {
+          delete converted.id;
+        }
+        // If item_id doesn't exist in items table, set to null
+        if (converted.item_id && !existingItemIds.has(converted.item_id)) {
+          console.warn(`   Warning: Transaction ${converted.transaction_number} references non-existent item ${converted.item_id}, setting to null`);
+          converted.item_id = null;
+        }
+        // If user_id doesn't exist, set to null
+        if (converted.user_id && !isValidUUID(converted.user_id)) {
+          converted.user_id = null;
+        }
+        return converted;
+      });
       
       const { error } = await supabase.from('transactions').insert(convertedBatch);
       if (error) {
         console.error(`   Error importing batch:`, error);
+        // Try to import individually to see which ones fail
+        for (const tx of convertedBatch) {
+          const { error: singleError } = await supabase.from('transactions').insert([tx]);
+          if (singleError) {
+            console.error(`   Failed to import transaction ${tx.transaction_number}:`, singleError.message);
+          }
+        }
       } else {
         console.log(`   Imported ${convertedBatch.length} transactions (${i + 1}-${Math.min(i + batchSize, transactionsToImport.length)})`);
       }
@@ -303,7 +386,14 @@ async function importNotifications() {
     
     console.log(`   Found ${notifications.length} notifications`);
     
-    const convertedNotifications = notifications.map(n => convertToSnakeCase(n));
+    const convertedNotifications = notifications.map(n => {
+      const converted = convertToSnakeCase(n);
+      // If ID is invalid UUID, remove it to let Supabase generate
+      if (converted.id && !isValidUUID(converted.id)) {
+        delete converted.id;
+      }
+      return converted;
+    });
     
     const { error } = await supabase.from('notifications').insert(convertedNotifications);
     if (error) {
@@ -335,7 +425,14 @@ async function importGuestRequests() {
     
     console.log(`   Found ${guestRequests.length} guest requests`);
     
-    const convertedRequests = guestRequests.map(r => convertToSnakeCase(r));
+    const convertedRequests = guestRequests.map(r => {
+      const converted = convertToSnakeCase(r);
+      // If ID is invalid UUID, remove it to let Supabase generate
+      if (converted.id && !isValidUUID(converted.id)) {
+        delete converted.id;
+      }
+      return converted;
+    });
     
     const { error } = await supabase.from('guest_requests').insert(convertedRequests);
     if (error) {

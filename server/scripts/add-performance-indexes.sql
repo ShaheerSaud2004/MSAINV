@@ -24,3 +24,5 @@ ANALYZE transactions;
 ANALYZE notifications;
 ANALYZE guest_requests;
 
+
+
