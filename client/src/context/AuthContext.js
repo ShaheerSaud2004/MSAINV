@@ -92,6 +92,8 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    // Clear quiz completion on logout to prevent cross-user issues
+    localStorage.removeItem('quiz_completed');
     setUser(null);
     setIsAuthenticated(false);
   };
@@ -111,19 +113,39 @@ export const AuthProvider = ({ children }) => {
     return user.role === role;
   };
 
-  // Check if quiz is passed (permanent - no expiration)
+  // Check if quiz is passed (permanent - no expiration, user-specific)
   const checkQuizStatus = () => {
     try {
+      // Must have a user to check quiz status
+      if (!user) {
+        return { passed: false, needsQuiz: true };
+      }
+
+      const currentUserId = user._id || user.id;
+      if (!currentUserId) {
+        return { passed: false, needsQuiz: true };
+      }
+
       const quizData = localStorage.getItem('quiz_completed');
-      if (!quizData) return { passed: false, needsQuiz: true };
+      if (!quizData) {
+        return { passed: false, needsQuiz: true };
+      }
 
       const quiz = JSON.parse(quizData);
       
-      // Check if quiz was passed
-      if (quiz.passed && quiz.permanent) {
+      // CRITICAL: Verify this quiz completion belongs to the current user
+      const quizUserId = quiz.userId;
+      if (!quizUserId || quizUserId.toString() !== currentUserId.toString()) {
+        // Quiz completion exists but for a different user - they need to take it
+        return { passed: false, needsQuiz: true };
+      }
+      
+      // Check if quiz was passed with required score (80%) and not skipped
+      if (quiz.passed && quiz.permanent && quiz.score >= 80 && !quiz.skipped) {
         return { passed: true, needsQuiz: false };
       }
 
+      // Quiz exists but not passed or score too low - they need to retake
       return { passed: false, needsQuiz: true };
     } catch (error) {
       console.error('Error checking quiz status:', error);

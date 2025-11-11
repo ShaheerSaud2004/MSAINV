@@ -275,26 +275,6 @@ const Tutorial = () => {
               <ChevronLeftIcon className="w-5 h-5" />
               Previous
             </button>
-            {currentSection === sections.length - 1 && (
-              <button
-                onClick={() => {
-                  if (window.confirm('Skip tutorial and quiz? This will grant you immediate access.')) {
-                    // Mark quiz as passed (skip)
-                    const quizData = {
-                      passed: true,
-                      completedAt: new Date().toISOString(),
-                      permanent: true,
-                      skipped: true
-                    };
-                    localStorage.setItem('quiz_completed', JSON.stringify(quizData));
-                    navigate('/dashboard');
-                  }
-                }}
-                className="px-6 py-3 bg-yellow-500 text-white rounded-lg font-medium hover:bg-yellow-600 transition-all"
-              >
-                Skip Tutorial & Quiz
-              </button>
-            )}
           </div>
 
           <div className="flex gap-2">

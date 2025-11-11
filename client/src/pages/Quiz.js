@@ -1,16 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-toastify';
 
 const Quiz = () => {
-  const { user } = useAuth();
+  const { user, checkQuizStatus } = useAuth();
   const navigate = useNavigate();
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
   const [passed, setPassed] = useState(false);
+
+  // Check on mount if user has already passed - redirect if so
+  useEffect(() => {
+    const quizStatus = checkQuizStatus();
+    if (quizStatus.passed) {
+      // User already passed - redirect to dashboard
+      navigate('/dashboard', { replace: true });
+    }
+  }, [checkQuizStatus, navigate]);
 
   const questions = [
     // Website Questions (1-5)
@@ -176,28 +185,38 @@ const Quiz = () => {
 
     setScore(percentage);
     setSubmitted(true);
-    setPassed(percentage >= minPassingScore && correct >= minCorrect);
+    
+    // CRITICAL: Only pass if score is exactly 80% or higher
+    const hasPassed = percentage >= minPassingScore && correct >= minCorrect;
+    setPassed(hasPassed);
 
-    if (percentage >= minPassingScore) {
-      // Save quiz completion
+    if (hasPassed) {
+      // Save quiz completion ONLY if passed with 80% or higher
+      const currentUserId = user?._id || user?.id;
+      if (!currentUserId) {
+        toast.error('User ID not found. Please log in again.');
+        return;
+      }
+
       const quizData = {
-        userId: user?._id || user?.id,
+        userId: currentUserId,
         role: user?.role,
         score: percentage,
         passed: true,
         completedAt: new Date().toISOString(),
-        // No expiration - quiz passed once is permanent
+        // No expiration - quiz passed once is permanent for this user
         permanent: true
       };
 
       localStorage.setItem('quiz_completed', JSON.stringify(quizData));
-      toast.success(`Congratulations! You passed with ${percentage.toFixed(0)}%!`);
+      toast.success(`Congratulations! You passed with ${percentage.toFixed(0)}%! Access granted.`);
       
       setTimeout(() => {
         navigate('/dashboard');
       }, 2000);
     } else {
-      toast.error(`You scored ${percentage.toFixed(0)}%. You need ${minPassingScore}% to pass. Please review the tutorial and try again.`);
+      // Failed - do NOT save completion, they must retake
+      toast.error(`You scored ${percentage.toFixed(0)}% (${correct}/${questions.length} correct). You need ${minPassingScore}% (${minCorrect} correct) to pass. The quiz will remain until you pass. Please review the tutorial and try again.`);
     }
   };
 
