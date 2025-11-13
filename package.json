@@ -35,7 +35,7 @@
     "url": "https://github.com/ShaheerSaud2004/MSAINV.git"
   },
   "engines": {
-    "node": ">=14.0.0",
+    "node": "20.17.0",
     "npm": ">=6.0.0"
   },
   "devDependencies": {
