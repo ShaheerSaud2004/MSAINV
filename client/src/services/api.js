@@ -2,7 +2,10 @@ import axios from 'axios';
 
 // Determine API URL - use relative URL in production, localhost in development
 // Check if we're in production by checking if we're not on localhost
-const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+// Only access window in browser environment (not during build)
+const isProduction = typeof window !== 'undefined' && 
+  window.location.hostname !== 'localhost' && 
+  window.location.hostname !== '127.0.0.1';
 const API_URL = isProduction
   ? '/api'  // Relative URL for production (same domain)
   : process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
@@ -18,9 +21,12 @@ const api = axios.create({
 // Add auth token to requests
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Only access localStorage in browser environment
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -35,9 +41,12 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Unauthorized - clear token and redirect to login
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      // Only access localStorage and window in browser environment
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

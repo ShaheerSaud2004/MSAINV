@@ -77,9 +77,14 @@ const StorageVisitPhoto = () => {
         formData.append('caption', caption || 'Storage visit photo');
       });
 
-      const token = localStorage.getItem('token');
+      // Only access localStorage and window in browser environment
+      const token = typeof window !== 'undefined' && window.localStorage 
+        ? localStorage.getItem('token') 
+        : null;
       // Use relative URL in production, localhost in development
-      const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+      const isProduction = typeof window !== 'undefined' && 
+        window.location.hostname !== 'localhost' && 
+        window.location.hostname !== '127.0.0.1';
       const API_URL = isProduction
         ? '/api'
         : process.env.REACT_APP_API_URL || 'http://localhost:3022/api';

@@ -182,16 +182,28 @@ export const getTourSteps = (userRole) => {
 };
 
 export const hasCompletedTour = (userRole) => {
+  // Only access localStorage in browser environment
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return false;
+  }
   const key = `tour_completed_${userRole}`;
   return localStorage.getItem(key) === 'true';
 };
 
 export const markTourCompleted = (userRole) => {
+  // Only access localStorage in browser environment
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
   const key = `tour_completed_${userRole}`;
   localStorage.setItem(key, 'true');
 };
 
 export const resetTour = (userRole) => {
+  // Only access localStorage in browser environment
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
   const key = `tour_completed_${userRole}`;
   localStorage.removeItem(key);
 };
