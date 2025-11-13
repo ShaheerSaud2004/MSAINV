@@ -362,6 +362,61 @@ router.put('/change-password', protect, [
   }
 });
 
+// @route   POST /api/auth/quiz-complete
+// @desc    Save quiz completion for user
+// @access  Private
+router.post('/quiz-complete', protect, [
+  body('score').isNumeric().withMessage('Score is required'),
+  body('passed').isBoolean().withMessage('Passed status is required'),
+  handleValidationErrors
+], async (req, res) => {
+  try {
+    const { score, passed } = req.body;
+    const storageService = getStorageService();
+    const userId = req.user._id || req.user.id;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID not found'
+      });
+    }
+
+    // Only save if passed with 80% or higher
+    if (!passed || score < 80) {
+      return res.status(400).json({
+        success: false,
+        message: 'Quiz must be passed with 80% or higher to save completion'
+      });
+    }
+
+    // Update user with quiz completion
+    const quizCompleted = {
+      passed: true,
+      score: score,
+      completedAt: new Date(),
+      permanent: true
+    };
+
+    await storageService.updateUser(userId, {
+      quizCompleted: quizCompleted
+    });
+
+    res.json({
+      success: true,
+      message: 'Quiz completion saved successfully',
+      data: { quizCompleted }
+    });
+  } catch (error) {
+    console.error('Quiz completion error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error saving quiz completion',
+      error: error.message
+    });
+  }
+});
+
 // @route   GET /api/auth/login-activity
 // @desc    Get login activity (Admin/Manager only)
 // @access  Private

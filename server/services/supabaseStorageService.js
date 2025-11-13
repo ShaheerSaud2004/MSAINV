@@ -109,6 +109,20 @@ class SupabaseStorageService {
       };
     }
     
+    // Parse quizCompleted if it's a string (JSONB from Supabase)
+    let quizCompleted = user.quiz_completed || user.quizCompleted;
+    if (typeof quizCompleted === 'string') {
+      try {
+        quizCompleted = JSON.parse(quizCompleted);
+      } catch (e) {
+        console.warn('Failed to parse quizCompleted JSON:', e);
+        quizCompleted = { passed: false, score: 0, completedAt: null, permanent: false };
+      }
+    }
+    if (!quizCompleted || typeof quizCompleted !== 'object') {
+      quizCompleted = { passed: false, score: 0, completedAt: null, permanent: false };
+    }
+    
     return {
       ...user,
       // ID fields
@@ -118,6 +132,7 @@ class SupabaseStorageService {
       permissions: permissions,
       // Convert snake_case to camelCase
       lastLogin: user.last_login || user.lastLogin,
+      quizCompleted: quizCompleted,
       createdAt: user.created_at || user.createdAt,
       updatedAt: user.updated_at || user.updatedAt
     };
@@ -215,6 +230,20 @@ class SupabaseStorageService {
         ? normalized.lastLogin.toISOString() 
         : normalized.lastLogin;
       delete normalized.lastLogin;
+    }
+    
+    // Handle quizCompleted conversion
+    if (normalized.quizCompleted !== undefined) {
+      const quizData = normalized.quizCompleted;
+      normalized.quiz_completed = {
+        passed: quizData.passed || false,
+        score: quizData.score || 0,
+        completedAt: quizData.completedAt instanceof Date 
+          ? quizData.completedAt.toISOString() 
+          : (quizData.completedAt || null),
+        permanent: quizData.permanent !== undefined ? quizData.permanent : false
+      };
+      delete normalized.quizCompleted;
     }
     
     const updateData = {

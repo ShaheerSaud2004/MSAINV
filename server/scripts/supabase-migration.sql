@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS users (
   status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'suspended')),
   permissions JSONB DEFAULT '{}',
   preferences JSONB DEFAULT '{}',
+  quiz_completed JSONB DEFAULT '{"passed": false, "score": 0, "completedAt": null, "permanent": false}',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -81,6 +82,9 @@ CREATE TABLE IF NOT EXISTS transactions (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Ensure quiz_completed column exists (idempotent)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS quiz_completed JSONB DEFAULT '{"passed": false, "score": 0, "completedAt": null, "permanent": false}';
 
 -- Ensure new workflow columns exist (idempotent)
 ALTER TABLE transactions ADD COLUMN IF NOT EXISTS storage_visits JSONB DEFAULT '[]';

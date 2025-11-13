@@ -51,6 +51,7 @@ export const authAPI = {
   updateProfile: (data) => api.put('/auth/update-profile', data),
   changePassword: (data) => api.put('/auth/change-password', data),
   getLoginActivity: (params) => api.get('/auth/login-activity', { params }),
+  completeQuiz: (data) => api.post('/auth/quiz-complete', data),
 };
 
 // Items API

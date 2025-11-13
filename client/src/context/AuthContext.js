@@ -114,6 +114,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Check if quiz is passed (permanent - no expiration, user-specific)
+  // Checks backend first, then falls back to localStorage
   const checkQuizStatus = () => {
     try {
       // Must have a user to check quiz status
@@ -126,26 +127,37 @@ export const AuthProvider = ({ children }) => {
         return { passed: false, needsQuiz: true };
       }
 
-      const quizData = localStorage.getItem('quiz_completed');
-      if (!quizData) {
-        return { passed: false, needsQuiz: true };
-      }
-
-      const quiz = JSON.parse(quizData);
-      
-      // CRITICAL: Verify this quiz completion belongs to the current user
-      const quizUserId = quiz.userId;
-      if (!quizUserId || quizUserId.toString() !== currentUserId.toString()) {
-        // Quiz completion exists but for a different user - they need to take it
-        return { passed: false, needsQuiz: true };
-      }
-      
-      // Check if quiz was passed with required score (80%) and not skipped
-      if (quiz.passed && quiz.permanent && quiz.score >= 80 && !quiz.skipped) {
+      // FIRST: Check backend (user object from server) - this persists across repushes
+      if (user.quizCompleted && user.quizCompleted.passed && user.quizCompleted.permanent && user.quizCompleted.score >= 80) {
+        // Also sync to localStorage as backup
+        const quizData = {
+          userId: currentUserId,
+          role: user.role,
+          score: user.quizCompleted.score,
+          passed: true,
+          completedAt: user.quizCompleted.completedAt || new Date().toISOString(),
+          permanent: true
+        };
+        localStorage.setItem('quiz_completed', JSON.stringify(quizData));
         return { passed: true, needsQuiz: false };
       }
 
-      // Quiz exists but not passed or score too low - they need to retake
+      // SECOND: Check localStorage as fallback (for backwards compatibility)
+      const quizData = localStorage.getItem('quiz_completed');
+      if (quizData) {
+        const quiz = JSON.parse(quizData);
+        
+        // CRITICAL: Verify this quiz completion belongs to the current user
+        const quizUserId = quiz.userId;
+        if (quizUserId && quizUserId.toString() === currentUserId.toString()) {
+          // Check if quiz was passed with required score (80%) and not skipped
+          if (quiz.passed && quiz.permanent && quiz.score >= 80 && !quiz.skipped) {
+            return { passed: true, needsQuiz: false };
+          }
+        }
+      }
+
+      // No valid quiz completion found
       return { passed: false, needsQuiz: true };
     } catch (error) {
       console.error('Error checking quiz status:', error);

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { authAPI } from '../services/api';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-toastify';
 
 const Quiz = () => {
-  const { user, checkQuizStatus } = useAuth();
+  const { user, checkQuizStatus, updateUser } = useAuth();
   const navigate = useNavigate();
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
@@ -191,29 +192,68 @@ const Quiz = () => {
     setPassed(hasPassed);
 
     if (hasPassed) {
-      // Save quiz completion ONLY if passed with 80% or higher
-      const currentUserId = user?._id || user?.id;
-      if (!currentUserId) {
-        toast.error('User ID not found. Please log in again.');
-        return;
+      // Save quiz completion to backend (persistent across repushes)
+      try {
+        const response = await authAPI.completeQuiz({
+          score: percentage,
+          passed: true
+        });
+
+        if (response.data.success) {
+          // Update user object with quiz completion
+          const updatedUser = {
+            ...user,
+            quizCompleted: {
+              passed: true,
+              score: percentage,
+              completedAt: new Date().toISOString(),
+              permanent: true
+            }
+          };
+          updateUser(updatedUser);
+          
+          // Also save to localStorage as backup
+          const currentUserId = user?._id || user?.id;
+          const quizData = {
+            userId: currentUserId,
+            role: user?.role,
+            score: percentage,
+            passed: true,
+            completedAt: new Date().toISOString(),
+            permanent: true
+          };
+          localStorage.setItem('quiz_completed', JSON.stringify(quizData));
+          
+          toast.success(`Congratulations! You passed with ${percentage.toFixed(0)}%! Access granted.`);
+          
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 2000);
+        } else {
+          toast.error('Failed to save quiz completion. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error saving quiz completion:', error);
+        // Still save to localStorage as fallback
+        const currentUserId = user?._id || user?.id;
+        if (currentUserId) {
+          const quizData = {
+            userId: currentUserId,
+            role: user?.role,
+            score: percentage,
+            passed: true,
+            completedAt: new Date().toISOString(),
+            permanent: true
+          };
+          localStorage.setItem('quiz_completed', JSON.stringify(quizData));
+          toast.success(`Congratulations! You passed with ${percentage.toFixed(0)}%! Access granted.`);
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 2000);
+        } else {
+          toast.error('Failed to save quiz completion. Please log in again.');
+        }
       }
-
-      const quizData = {
-        userId: currentUserId,
-        role: user?.role,
-        score: percentage,
-        passed: true,
-        completedAt: new Date().toISOString(),
-        // No expiration - quiz passed once is permanent for this user
-        permanent: true
-      };
-
-      localStorage.setItem('quiz_completed', JSON.stringify(quizData));
-      toast.success(`Congratulations! You passed with ${percentage.toFixed(0)}%! Access granted.`);
-      
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 2000);
     } else {
       // Failed - do NOT save completion, they must retake
       toast.error(`You scored ${percentage.toFixed(0)}% (${correct}/${questions.length} correct). You need ${minPassingScore}% (${minCorrect} correct) to pass. The quiz will remain until you pass. Please review the tutorial and try again.`);

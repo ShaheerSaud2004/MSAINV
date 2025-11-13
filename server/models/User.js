@@ -74,6 +74,12 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  quizCompleted: {
+    passed: { type: Boolean, default: false },
+    score: { type: Number, default: 0 },
+    completedAt: { type: Date, default: null },
+    permanent: { type: Boolean, default: false }
+  },
   createdAt: {
     type: Date,
     default: Date.now
