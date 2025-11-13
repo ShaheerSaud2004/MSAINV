@@ -167,7 +167,7 @@ const Quiz = () => {
     });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (Object.keys(answers).length < questions.length) {
       toast.error('Please answer all questions before submitting');
       return;
