@@ -213,16 +213,18 @@ const Quiz = () => {
           updateUser(updatedUser);
           
           // Also save to localStorage as backup
-          const currentUserId = user?._id || user?.id;
-          const quizData = {
-            userId: currentUserId,
-            role: user?.role,
-            score: percentage,
-            passed: true,
-            completedAt: new Date().toISOString(),
-            permanent: true
-          };
-          localStorage.setItem('quiz_completed', JSON.stringify(quizData));
+          if (typeof window !== 'undefined' && window.localStorage) {
+            const currentUserId = user?._id || user?.id;
+            const quizData = {
+              userId: currentUserId,
+              role: user?.role,
+              score: percentage,
+              passed: true,
+              completedAt: new Date().toISOString(),
+              permanent: true
+            };
+            localStorage.setItem('quiz_completed', JSON.stringify(quizData));
+          }
           
           toast.success(`Congratulations! You passed with ${percentage.toFixed(0)}%! Access granted.`);
           
@@ -235,21 +237,25 @@ const Quiz = () => {
       } catch (error) {
         console.error('Error saving quiz completion:', error);
         // Still save to localStorage as fallback
-        const currentUserId = user?._id || user?.id;
-        if (currentUserId) {
-          const quizData = {
-            userId: currentUserId,
-            role: user?.role,
-            score: percentage,
-            passed: true,
-            completedAt: new Date().toISOString(),
-            permanent: true
-          };
-          localStorage.setItem('quiz_completed', JSON.stringify(quizData));
-          toast.success(`Congratulations! You passed with ${percentage.toFixed(0)}%! Access granted.`);
-          setTimeout(() => {
-            navigate('/dashboard');
-          }, 2000);
+        if (typeof window !== 'undefined' && window.localStorage) {
+          const currentUserId = user?._id || user?.id;
+          if (currentUserId) {
+            const quizData = {
+              userId: currentUserId,
+              role: user?.role,
+              score: percentage,
+              passed: true,
+              completedAt: new Date().toISOString(),
+              permanent: true
+            };
+            localStorage.setItem('quiz_completed', JSON.stringify(quizData));
+            toast.success(`Congratulations! You passed with ${percentage.toFixed(0)}%! Access granted.`);
+            setTimeout(() => {
+              navigate('/dashboard');
+            }, 2000);
+          } else {
+            toast.error('Failed to save quiz completion. Please log in again.');
+          }
         } else {
           toast.error('Failed to save quiz completion. Please log in again.');
         }
