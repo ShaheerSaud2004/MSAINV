@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { CameraIcon, PhotoIcon, XMarkIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
+import { safeLocalStorage } from '../utils/storage';
 
 const StorageVisitPhoto = () => {
   const { transactionId } = useParams();
@@ -77,10 +78,7 @@ const StorageVisitPhoto = () => {
         formData.append('caption', caption || 'Storage visit photo');
       });
 
-      // Only access localStorage and window in browser environment
-      const token = typeof window !== 'undefined' && window.localStorage 
-        ? localStorage.getItem('token') 
-        : null;
+      const token = safeLocalStorage.getItem('token');
       // Use relative URL in production, localhost in development
       const isProduction = typeof window !== 'undefined' && 
         window.location.hostname !== 'localhost' && 

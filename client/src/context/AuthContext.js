@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { authAPI } from '../services/api';
+import { safeLocalStorage } from '../utils/storage';
 
 const AuthContext = createContext(null);
 
@@ -18,14 +19,8 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // Check if user is logged in on mount
-    // Only access localStorage in browser environment
-    if (typeof window === 'undefined' || !window.localStorage) {
-      setLoading(false);
-      return;
-    }
-
-    const token = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
+    const token = safeLocalStorage.getItem('token');
+    const savedUser = safeLocalStorage.getItem('user');
 
     if (token && savedUser) {
       try {
@@ -47,10 +42,7 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.getMe();
       if (response.data.success) {
         setUser(response.data.data);
-        // Only access localStorage in browser environment
-        if (typeof window !== 'undefined' && window.localStorage) {
-          localStorage.setItem('user', JSON.stringify(response.data.data));
-        }
+        safeLocalStorage.setItem('user', JSON.stringify(response.data.data));
       }
     } catch (error) {
       console.error('Token verification failed:', error);
@@ -63,11 +55,8 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.login({ email, password });
       if (response.data.success) {
         const { user, token } = response.data.data;
-        // Only access localStorage in browser environment
-        if (typeof window !== 'undefined' && window.localStorage) {
-          localStorage.setItem('token', token);
-          localStorage.setItem('user', JSON.stringify(user));
-        }
+        safeLocalStorage.setItem('token', token);
+        safeLocalStorage.setItem('user', JSON.stringify(user));
         setUser(user);
         setIsAuthenticated(true);
         return { success: true, user };
@@ -86,11 +75,8 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.register(userData);
       if (response.data.success) {
         const { user, token } = response.data.data;
-        // Only access localStorage in browser environment
-        if (typeof window !== 'undefined' && window.localStorage) {
-          localStorage.setItem('token', token);
-          localStorage.setItem('user', JSON.stringify(user));
-        }
+        safeLocalStorage.setItem('token', token);
+        safeLocalStorage.setItem('user', JSON.stringify(user));
         setUser(user);
         setIsAuthenticated(true);
         return { success: true, user };
@@ -105,23 +91,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    // Only access localStorage in browser environment
-    if (typeof window !== 'undefined' && window.localStorage) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      // Clear quiz completion on logout to prevent cross-user issues
-      localStorage.removeItem('quiz_completed');
-    }
+    safeLocalStorage.removeItem('token');
+    safeLocalStorage.removeItem('user');
+    // Clear quiz completion on logout to prevent cross-user issues
+    safeLocalStorage.removeItem('quiz_completed');
     setUser(null);
     setIsAuthenticated(false);
   };
 
   const updateUser = (updatedUser) => {
     setUser(updatedUser);
-    // Only access localStorage in browser environment
-    if (typeof window !== 'undefined' && window.localStorage) {
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-    }
+    safeLocalStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
   const hasPermission = (permission) => {
@@ -151,25 +131,20 @@ export const AuthProvider = ({ children }) => {
       // FIRST: Check backend (user object from server) - this persists across repushes
       if (user.quizCompleted && user.quizCompleted.passed && user.quizCompleted.permanent && user.quizCompleted.score >= 80) {
         // Also sync to localStorage as backup
-        if (typeof window !== 'undefined' && window.localStorage) {
-          const quizData = {
-            userId: currentUserId,
-            role: user.role,
-            score: user.quizCompleted.score,
-            passed: true,
-            completedAt: user.quizCompleted.completedAt || new Date().toISOString(),
-            permanent: true
-          };
-          localStorage.setItem('quiz_completed', JSON.stringify(quizData));
-        }
+        const quizData = {
+          userId: currentUserId,
+          role: user.role,
+          score: user.quizCompleted.score,
+          passed: true,
+          completedAt: user.quizCompleted.completedAt || new Date().toISOString(),
+          permanent: true
+        };
+        safeLocalStorage.setItem('quiz_completed', JSON.stringify(quizData));
         return { passed: true, needsQuiz: false };
       }
 
       // SECOND: Check localStorage as fallback (for backwards compatibility)
-      if (typeof window === 'undefined' || !window.localStorage) {
-        return { passed: false, needsQuiz: true };
-      }
-      const quizData = localStorage.getItem('quiz_completed');
+      const quizData = safeLocalStorage.getItem('quiz_completed');
       if (quizData) {
         const quiz = JSON.parse(quizData);
         

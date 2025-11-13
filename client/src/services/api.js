@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { safeLocalStorage } from '../utils/storage';
 
 // Determine API URL - use relative URL in production, localhost in development
 // Check if we're in production by checking if we're not on localhost
@@ -21,12 +22,9 @@ const api = axios.create({
 // Add auth token to requests
 api.interceptors.request.use(
   (config) => {
-    // Only access localStorage in browser environment
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const token = localStorage.getItem('token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+    const token = safeLocalStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -41,10 +39,9 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Unauthorized - clear token and redirect to login
-      // Only access localStorage and window in browser environment
-      if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+      safeLocalStorage.removeItem('token');
+      safeLocalStorage.removeItem('user');
+      if (typeof window !== 'undefined') {
         window.location.href = '/login';
       }
     }

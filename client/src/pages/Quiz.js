@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../services/api';
+import { safeLocalStorage } from '../utils/storage';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-toastify';
 
@@ -213,18 +214,16 @@ const Quiz = () => {
           updateUser(updatedUser);
           
           // Also save to localStorage as backup
-          if (typeof window !== 'undefined' && window.localStorage) {
-            const currentUserId = user?._id || user?.id;
-            const quizData = {
-              userId: currentUserId,
-              role: user?.role,
-              score: percentage,
-              passed: true,
-              completedAt: new Date().toISOString(),
-              permanent: true
-            };
-            localStorage.setItem('quiz_completed', JSON.stringify(quizData));
-          }
+          const currentUserId = user?._id || user?.id;
+          const quizData = {
+            userId: currentUserId,
+            role: user?.role,
+            score: percentage,
+            passed: true,
+            completedAt: new Date().toISOString(),
+            permanent: true
+          };
+          safeLocalStorage.setItem('quiz_completed', JSON.stringify(quizData));
           
           toast.success(`Congratulations! You passed with ${percentage.toFixed(0)}%! Access granted.`);
           
@@ -237,25 +236,21 @@ const Quiz = () => {
       } catch (error) {
         console.error('Error saving quiz completion:', error);
         // Still save to localStorage as fallback
-        if (typeof window !== 'undefined' && window.localStorage) {
-          const currentUserId = user?._id || user?.id;
-          if (currentUserId) {
-            const quizData = {
-              userId: currentUserId,
-              role: user?.role,
-              score: percentage,
-              passed: true,
-              completedAt: new Date().toISOString(),
-              permanent: true
-            };
-            localStorage.setItem('quiz_completed', JSON.stringify(quizData));
-            toast.success(`Congratulations! You passed with ${percentage.toFixed(0)}%! Access granted.`);
-            setTimeout(() => {
-              navigate('/dashboard');
-            }, 2000);
-          } else {
-            toast.error('Failed to save quiz completion. Please log in again.');
-          }
+        const currentUserId = user?._id || user?.id;
+        if (currentUserId) {
+          const quizData = {
+            userId: currentUserId,
+            role: user?.role,
+            score: percentage,
+            passed: true,
+            completedAt: new Date().toISOString(),
+            permanent: true
+          };
+          safeLocalStorage.setItem('quiz_completed', JSON.stringify(quizData));
+          toast.success(`Congratulations! You passed with ${percentage.toFixed(0)}%! Access granted.`);
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 2000);
         } else {
           toast.error('Failed to save quiz completion. Please log in again.');
         }

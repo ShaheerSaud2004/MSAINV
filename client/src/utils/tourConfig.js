@@ -1,4 +1,5 @@
 // Tour configurations for different user roles
+import { safeLocalStorage } from './storage';
 
 export const getTourSteps = (userRole) => {
   const baseSteps = {
@@ -182,29 +183,17 @@ export const getTourSteps = (userRole) => {
 };
 
 export const hasCompletedTour = (userRole) => {
-  // Only access localStorage in browser environment
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return false;
-  }
   const key = `tour_completed_${userRole}`;
-  return localStorage.getItem(key) === 'true';
+  return safeLocalStorage.getItem(key) === 'true';
 };
 
 export const markTourCompleted = (userRole) => {
-  // Only access localStorage in browser environment
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return;
-  }
   const key = `tour_completed_${userRole}`;
-  localStorage.setItem(key, 'true');
+  safeLocalStorage.setItem(key, 'true');
 };
 
 export const resetTour = (userRole) => {
-  // Only access localStorage in browser environment
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return;
-  }
   const key = `tour_completed_${userRole}`;
-  localStorage.removeItem(key);
+  safeLocalStorage.removeItem(key);
 };
 
