@@ -13,6 +13,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 
 const Analytics = () => {
   const [loading, setLoading] = useState(true);
+  const [dashboardSummary, setDashboardSummary] = useState(null);
   const [itemUtilization, setItemUtilization] = useState([]);
   const [userActivity, setUserActivity] = useState([]);
   const [overduePatterns, setOverduePatterns] = useState(null);
@@ -26,11 +27,16 @@ const Analytics = () => {
     try {
       setLoading(true);
       
-      const [utilizationRes, activityRes, overdueRes] = await Promise.all([
+      const [dashboardRes, utilizationRes, activityRes, overdueRes] = await Promise.all([
+        analyticsAPI.getDashboard().catch(() => ({ data: { success: false } })),
         analyticsAPI.getItemUtilization().catch(() => ({ data: { success: false } })),
         analyticsAPI.getUserActivity().catch(() => ({ data: { success: false } })),
         analyticsAPI.getOverduePatterns().catch(() => ({ data: { success: false } }))
       ]);
+
+      if (dashboardRes.data.success) {
+        setDashboardSummary(dashboardRes.data.data.summary);
+      }
 
       if (utilizationRes.data.success) {
         setItemUtilization(utilizationRes.data.data.slice(0, 10));
@@ -100,7 +106,7 @@ const Analytics = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Items</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">
-                  {itemUtilization.length > 0 ? itemUtilization.reduce((sum, item) => sum + (item.item?.totalQuantity || 0), 0) : 0}
+                  {dashboardSummary?.totalItems || 0}
                 </p>
               </div>
               <CubeIcon className="w-12 h-12 text-blue-500" />
@@ -111,7 +117,9 @@ const Analytics = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Users</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{userActivity.length}</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">
+                  {dashboardSummary?.activeUsers || 0}
+                </p>
               </div>
               <UserGroupIcon className="w-12 h-12 text-green-500" />
             </div>
@@ -122,7 +130,7 @@ const Analytics = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Checkouts</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">
-                  {userActivity.reduce((sum, user) => sum + (user.totalCheckouts || 0), 0)}
+                  {dashboardSummary?.activeCheckouts || 0}
                 </p>
               </div>
               <ArrowTrendingUpIcon className="w-12 h-12 text-purple-500" />
@@ -134,7 +142,7 @@ const Analytics = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Overdue Items</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">
-                  {overduePatterns?.summary?.totalOverdue || 0}
+                  {dashboardSummary?.overdueCheckouts || 0}
                 </p>
               </div>
               <ExclamationTriangleIcon className="w-12 h-12 text-red-500" />
