@@ -25,6 +25,7 @@ import AdminPanel from './pages/AdminPanel';
 import GuestRequest from './pages/GuestRequest';
 import Tutorial from './pages/Tutorial';
 import Quiz from './pages/Quiz';
+import QuizConfirmation from './pages/QuizConfirmation';
 
 // Layout
 import Layout from './components/Layout';
@@ -32,7 +33,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading, checkQuizStatus } = useAuth();
+  const { isAuthenticated, loading, checkQuizStatus, quizPromptAnswered } = useAuth();
 
   if (loading) {
     return (
@@ -48,15 +49,15 @@ const ProtectedRoute = ({ children }) => {
 
   // Check quiz status - skip for tutorial and quiz pages
   const currentPath = window.location.pathname;
-  if (currentPath !== '/tutorial' && currentPath !== '/quiz') {
+  if (currentPath !== '/tutorial' && currentPath !== '/quiz' && currentPath !== '/quiz-confirmation') {
     const quizStatus = checkQuizStatus();
-    if (quizStatus.needsQuiz) {
-      return <Navigate to="/tutorial" replace />;
+    if (quizStatus.needsQuiz && !quizPromptAnswered) {
+      return <Navigate to="/quiz-confirmation" replace />;
     }
   }
 
-  // Don't show layout for tutorial and quiz pages
-  if (currentPath === '/tutorial' || currentPath === '/quiz') {
+  // Don't show layout for tutorial, quiz, or quiz confirmation pages
+  if (currentPath === '/tutorial' || currentPath === '/quiz' || currentPath === '/quiz-confirmation') {
     return <>{children}</>;
   }
 
@@ -119,6 +120,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Quiz />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quiz-confirmation"
+          element={
+            <ProtectedRoute>
+              <QuizConfirmation />
             </ProtectedRoute>
           }
         />

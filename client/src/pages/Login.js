@@ -10,7 +10,7 @@ const Login = () => {
     password: ''
   });
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, checkQuizStatus } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -28,7 +28,12 @@ const Login = () => {
       const result = await login(formData.email, formData.password);
       if (result.success) {
         toast.success('Login successful!');
-        navigate('/dashboard');
+        const quizStatus = checkQuizStatus(result.user);
+        if (quizStatus.needsQuiz) {
+          navigate('/quiz-confirmation');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
         toast.error(result.message || 'Login failed');
       }
@@ -45,7 +50,12 @@ const Login = () => {
       const result = await login(email, password);
       if (result.success) {
         toast.success(`Quick login as ${role} successful!`);
-        navigate('/dashboard');
+        const quizStatus = checkQuizStatus(result.user);
+        if (quizStatus.needsQuiz) {
+          navigate('/quiz-confirmation');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
         toast.error(result.message || 'Quick login failed');
       }

@@ -16,6 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [quizPromptAnswered, setQuizPromptAnswered] = useState(false);
 
   useEffect(() => {
     // Check if user is logged in on mount
@@ -59,6 +60,7 @@ export const AuthProvider = ({ children }) => {
         safeLocalStorage.setItem('user', JSON.stringify(user));
         setUser(user);
         setIsAuthenticated(true);
+        setQuizPromptAnswered(false);
         return { success: true, user };
       }
     } catch (error) {
@@ -79,6 +81,7 @@ export const AuthProvider = ({ children }) => {
         safeLocalStorage.setItem('user', JSON.stringify(user));
         setUser(user);
         setIsAuthenticated(true);
+        setQuizPromptAnswered(false);
         return { success: true, user };
       }
     } catch (error) {
@@ -97,6 +100,7 @@ export const AuthProvider = ({ children }) => {
     safeLocalStorage.removeItem('quiz_completed');
     setUser(null);
     setIsAuthenticated(false);
+    setQuizPromptAnswered(false);
   };
 
   const updateUser = (updatedUser) => {
@@ -116,27 +120,28 @@ export const AuthProvider = ({ children }) => {
 
   // Check if quiz is passed (permanent - no expiration, user-specific)
   // Checks backend first, then falls back to localStorage
-  const checkQuizStatus = () => {
+  const checkQuizStatus = (targetUser) => {
     try {
+      const activeUser = targetUser || user;
       // Must have a user to check quiz status
-      if (!user) {
+      if (!activeUser) {
         return { passed: false, needsQuiz: true };
       }
 
-      const currentUserId = user._id || user.id;
+      const currentUserId = activeUser._id || activeUser.id;
       if (!currentUserId) {
         return { passed: false, needsQuiz: true };
       }
 
       // FIRST: Check backend (user object from server) - this persists across repushes
-      if (user.quizCompleted && user.quizCompleted.passed && user.quizCompleted.permanent && user.quizCompleted.score >= 80) {
+      if (activeUser.quizCompleted && activeUser.quizCompleted.passed && activeUser.quizCompleted.permanent && activeUser.quizCompleted.score >= 80) {
         // Also sync to localStorage as backup
         const quizData = {
           userId: currentUserId,
-          role: user.role,
-          score: user.quizCompleted.score,
+          role: activeUser.role,
+          score: activeUser.quizCompleted.score,
           passed: true,
-          completedAt: user.quizCompleted.completedAt || new Date().toISOString(),
+          completedAt: activeUser.quizCompleted.completedAt || new Date().toISOString(),
           permanent: true
         };
         safeLocalStorage.setItem('quiz_completed', JSON.stringify(quizData));
@@ -166,6 +171,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const markQuizPromptAnswered = (value = true) => {
+    setQuizPromptAnswered(value);
+  };
+
   const value = {
     user,
     loading,
@@ -177,6 +186,8 @@ export const AuthProvider = ({ children }) => {
     hasPermission,
     isRole,
     checkQuizStatus,
+    quizPromptAnswered,
+    markQuizPromptAnswered,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
