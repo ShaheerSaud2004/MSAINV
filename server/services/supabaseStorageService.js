@@ -21,6 +21,21 @@ class SupabaseStorageService {
   // Helper to convert Supabase item to camelCase format
   normalizeItem(item) {
     if (!item) return null;
+    
+    // Ensure location is always a plain object
+    let location = item.location;
+    if (typeof location === 'string') {
+      try {
+        location = JSON.parse(location);
+      } catch (error) {
+        console.warn('Failed to parse location JSON:', location, error);
+        location = {};
+      }
+    }
+    if (!location || typeof location !== 'object') {
+      location = {};
+    }
+    
     return {
       ...item,
       // ID fields
@@ -39,7 +54,8 @@ class SupabaseStorageService {
       createdAt: item.created_at || item.createdAt,
       updatedAt: item.updated_at || item.updatedAt,
       createdBy: item.created_by || item.createdBy,
-      lastModifiedBy: item.last_modified_by || item.lastModifiedBy
+      lastModifiedBy: item.last_modified_by || item.lastModifiedBy,
+      location
     };
   }
 
