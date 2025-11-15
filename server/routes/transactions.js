@@ -813,23 +813,28 @@ router.post('/:id/reject', protect, checkPermission('canApprove'), [
     const transactionUserId = transaction.user._id || transaction.user.id || transaction.user;
     const itemId = transaction.item._id || transaction.item.id || transaction.item;
     
-    await createNotification({
-      recipient: transactionUserId,
-      type: 'approval_rejected',
-      title: 'Checkout Rejected',
-      message: `Your checkout request has been rejected. Reason: ${reason}`,
-      priority: 'high',
-      channels: {
-        email: true,
-        sms: false,
-        push: true,
-        inApp: true
-      },
-      relatedTransaction: req.params.id,
-      relatedItem: itemId,
-      actionUrl: `/transactions/${req.params.id}`,
-      actionText: 'View Transaction'
-    });
+    try {
+      await createNotification({
+        recipient: transactionUserId,
+        type: 'approval_rejected',
+        title: 'Checkout Rejected',
+        message: `Your checkout request has been rejected. Reason: ${reason}`,
+        priority: 'high',
+        channels: {
+          email: true,
+          sms: false,
+          push: true,
+          inApp: true
+        },
+        relatedTransaction: req.params.id,
+        relatedItem: itemId,
+        actionUrl: `/transactions/${req.params.id}`,
+        actionText: 'View Transaction'
+      });
+    } catch (notifError) {
+      console.error('Notification error (non-critical):', notifError);
+      // Do not fail rejection if notification fails
+    }
 
     res.json({
       success: true,
