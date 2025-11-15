@@ -20,6 +20,7 @@ import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import QRScanner from './pages/QRScanner';
 import CheckoutForm from './pages/CheckoutForm';
+import MultiCheckout from './pages/MultiCheckout';
 import PrintQRCodes from './pages/PrintQRCodes';
 import AdminPanel from './pages/AdminPanel';
 import GuestRequest from './pages/GuestRequest';
@@ -178,6 +179,14 @@ function App() {
           element={
             <ProtectedRoute>
               <CheckoutForm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/checkout/multi"
+          element={
+            <ProtectedRoute>
+              <MultiCheckout />
             </ProtectedRoute>
           }
         />

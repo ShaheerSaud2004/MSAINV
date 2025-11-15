@@ -76,6 +76,7 @@ export const transactionsAPI = {
   getAll: (params) => api.get('/transactions', { params }),
   getById: (id) => api.get(`/transactions/${id}`),
   checkout: (data) => api.post('/transactions/checkout', data),
+  bulkCheckout: (data) => api.post('/transactions/checkout/bulk', data),
   return: (id, data) => api.post(`/transactions/${id}/return`, data),
   approve: (id) => api.post(`/transactions/${id}/approve`),
   reject: (id, data) => api.post(`/transactions/${id}/reject`, data),

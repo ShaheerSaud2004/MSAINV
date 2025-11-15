@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { itemsAPI, transactionsAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 
 const Items = () => {
   const { hasPermission } = useAuth();
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -16,6 +17,52 @@ const Items = () => {
   const [status, setStatus] = useState('');
   const [categories, setCategories] = useState([]);
   const [recentCheckouts, setRecentCheckouts] = useState([]);
+  const [selectedItems, setSelectedItems] = useState({});
+  useEffect(() => {
+    if (!items.length) {
+      if (Object.keys(selectedItems).length) {
+        setSelectedItems({});
+      }
+      return;
+    }
+
+    setSelectedItems(prev => {
+      const next = {};
+      items.forEach(item => {
+        const id = item._id || item.id;
+        if (prev[id]) {
+          next[id] = true;
+        }
+      });
+      return next;
+    });
+  }, [items]);
+
+  const selectedIds = Object.keys(selectedItems).filter(id => selectedItems[id]);
+  const selectedCount = selectedIds.length;
+
+  const toggleItemSelection = (itemId) => {
+    setSelectedItems(prev => {
+      const next = { ...prev };
+      if (next[itemId]) {
+        delete next[itemId];
+      } else {
+        next[itemId] = true;
+      }
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedItems({});
+
+  const startBulkCheckout = () => {
+    if (selectedCount === 0) {
+      toast.error('Select at least one item to start a bulk checkout.');
+      return;
+    }
+    navigate(`/checkout/multi?items=${selectedIds.join(',')}`);
+  };
+
 
   useEffect(() => {
     fetchItems();
@@ -100,6 +147,28 @@ const Items = () => {
           </Link>
         )}
       </div>
+
+      {selectedCount > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+          <div className="text-sm text-blue-800 font-semibold">
+            {selectedCount} item{selectedCount > 1 ? 's' : ''} selected for bulk checkout
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              className="btn-secondary text-sm"
+              onClick={clearSelection}
+            >
+              Clear Selection
+            </button>
+            <button
+              className="btn-primary text-sm"
+              onClick={startBulkCheckout}
+            >
+              Start Bulk Checkout
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Recently Checked Out Items */}
       {recentCheckouts.length > 0 && (
@@ -218,18 +287,41 @@ const Items = () => {
 
       {/* Items Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {items.map((item) => (
-          <div
-            key={item._id || item.id}
-            className="card hover:shadow-lg transition-shadow"
-          >
-            <div className="flex justify-between items-start mb-3">
-              <div className="flex-1">
-                <h3 className="font-bold text-lg text-gray-900">{item.name}</h3>
-                <p className="text-sm text-gray-600 mt-1 line-clamp-2">{item.description}</p>
+        {items.map((item) => {
+          const itemId = item._id || item.id;
+          const isSelected = !!selectedItems[itemId];
+          const canSelect = item.isCheckoutable && item.status === 'active' && item.availableQuantity > 0;
+
+          return (
+            <div
+              key={itemId}
+              className={`card hover:shadow-lg transition-shadow relative ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
+            >
+              {canSelect && (
+                <button
+                  type="button"
+                  className={`absolute top-3 right-3 p-2 rounded-full border ${isSelected ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleItemSelection(itemId);
+                  }}
+                  aria-pressed={isSelected}
+                >
+                  <span className={`block w-3 h-3 rounded-full ${isSelected ? 'bg-white' : 'bg-transparent border border-gray-400'}`} />
+                </button>
+              )}
+              {!canSelect && (
+                <div className="absolute top-3 right-3 text-xs font-semibold text-gray-400">
+                  Unavailable
+                </div>
+              )}
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg text-gray-900">{item.name}</h3>
+                  <p className="text-sm text-gray-600 mt-1 line-clamp-2">{item.description}</p>
+                </div>
+                <QrCodeIcon className="w-6 h-6 text-gray-400 ml-2" />
               </div>
-              <QrCodeIcon className="w-6 h-6 text-gray-400 ml-2" />
-            </div>
             <div className="flex flex-wrap gap-2 mb-3">
               <span className="badge badge-info">{item.category}</span>
               <span
@@ -256,25 +348,26 @@ const Items = () => {
               </div>
             </div>
             {/* Action Buttons */}
-            <div className="flex gap-2">
-              <Link
-                to={`/items/${item._id || item.id}`}
-                className="btn-secondary flex-1 text-center"
-              >
-                View Details
-              </Link>
-              {item.isCheckoutable && item.availableQuantity > 0 && (
+              <div className="flex gap-2">
                 <Link
-                  to={`/checkout/${item._id || item.id}`}
-                  className="btn-primary flex-1 text-center"
-                  onClick={(e) => e.stopPropagation()}
+                  to={`/items/${itemId}`}
+                  className="btn-secondary flex-1 text-center"
                 >
-                  Quick Checkout
+                  View Details
                 </Link>
-              )}
+                {item.isCheckoutable && item.availableQuantity > 0 && (
+                  <Link
+                    to={`/checkout/${itemId}`}
+                    className="btn-primary flex-1 text-center"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Quick Checkout
+                  </Link>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {items.length === 0 && !loading && (

@@ -303,6 +303,171 @@ router.post('/checkout', protect, checkPermission('canCheckout'), [
   }
 });
 
+// @route   POST /api/transactions/checkout/bulk
+// @desc    Checkout multiple items in one request
+// @access  Private
+router.post('/checkout/bulk', protect, checkPermission('canCheckout'), [
+  body('items').isArray({ min: 1 }).withMessage('Select at least one item'),
+  body('items.*.item').notEmpty().withMessage('Item ID is required for each selection'),
+  body('items.*.quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
+  body('purpose').trim().notEmpty().withMessage('Purpose is required'),
+  body('expectedReturnDate').isISO8601().withMessage('Valid return date is required'),
+  handleValidationErrors
+], async (req, res) => {
+  try {
+    const { items: checkoutItems, purpose, expectedReturnDate, destination, requester } = req.body;
+    const storageService = getStorageService();
+    const userId = req.user._id || req.user.id;
+
+    // Validate each requested item first
+    const validationErrors = [];
+    const itemPayloads = [];
+    const uniqueIds = new Set();
+
+    for (const entry of checkoutItems) {
+      const itemId = entry.item;
+      const quantity = parseInt(entry.quantity, 10);
+
+      if (uniqueIds.has(itemId)) {
+        validationErrors.push(`Duplicate selection detected for item ${itemId}. Please adjust quantities instead of selecting twice.`);
+        continue;
+      }
+      uniqueIds.add(itemId);
+
+      const itemDoc = await storageService.findItemById(itemId);
+
+      if (!itemDoc) {
+        validationErrors.push(`Item ${itemId} not found.`);
+        continue;
+      }
+
+      if (!itemDoc.isCheckoutable || itemDoc.status !== 'active') {
+        validationErrors.push(`${itemDoc.name} is not available for checkout.`);
+        continue;
+      }
+
+      // Consider pending reservations
+      const allTx = await storageService.findAllTransactions({ item: itemId });
+      const reservedPending = allTx
+        .filter(t => t.status === 'pending')
+        .reduce((sum, t) => sum + (t.quantity || 0), 0);
+      const effectiveAvailable = Math.max(0, (itemDoc.availableQuantity || 0) - reservedPending);
+
+      if (effectiveAvailable < quantity) {
+        validationErrors.push(`${itemDoc.name} only has ${effectiveAvailable} unit(s) available after pending reservations.`);
+        continue;
+      }
+
+      itemPayloads.push({ doc: itemDoc, quantity });
+    }
+
+    if (itemPayloads.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Unable to submit checkout request',
+        errors: validationErrors.length ? validationErrors : ['No valid items provided']
+      });
+    }
+
+    if (validationErrors.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'Some items could not be processed',
+        errors: validationErrors
+      });
+    }
+
+    const transactions = [];
+
+    for (const payload of itemPayloads) {
+      const { doc: itemDoc, quantity } = payload;
+      const requesterLines = [
+        'Bulk checkout request',
+        `Checked out by: ${requester?.fullName || req.user.name || 'N/A'}`,
+        `Team: ${requester?.team || 'N/A'}`,
+        `Phone: ${requester?.phoneNumber || 'N/A'}`,
+        `Email: ${requester?.email || req.user.email || 'N/A'}`,
+        `Item: ${itemDoc.name}`,
+        `Quantity: ${quantity}`,
+        requester?.notes ? `Additional notes: ${requester.notes}` : ''
+      ].filter(Boolean).join('\n');
+
+      const transactionData = {
+        type: 'checkout',
+        status: 'pending',
+        item: itemDoc._id || itemDoc.id,
+        user: userId,
+        quantity,
+        checkoutDate: new Date(),
+        expectedReturnDate: new Date(expectedReturnDate),
+        purpose,
+        destination: destination || {},
+        checkoutCondition: itemDoc.condition,
+        notes: requesterLines,
+        approvalRequired: true,
+        checkedOutBy: userId
+      };
+
+      const transaction = await storageService.createTransaction(transactionData);
+      transactions.push(transaction);
+    }
+
+    // Notify managers once for the bulk request
+    try {
+      const descriptionList = itemPayloads
+        .map(({ doc, quantity }) => `${quantity} × ${doc.name}`)
+        .join(', ');
+
+      await notifyManagers({
+        type: 'approval_request',
+        title: 'Bulk Checkout Approval Required',
+        message: `${req.user.name} requested multiple items: ${descriptionList}`,
+        priority: 'high',
+        relatedTransaction: transactions[0]?._id || transactions[0]?.id,
+        actionUrl: '/admin',
+        actionText: 'Review in Admin Panel'
+      });
+    } catch (notifError) {
+      console.error('Manager notification error (non-critical):', notifError);
+    }
+
+    // Notify user once
+    try {
+      await createNotification({
+        recipient: userId,
+        type: 'approval_request',
+        title: 'Bulk Checkout Pending Approval',
+        message: `Your bulk checkout request for ${transactions.length} item(s) is pending admin approval`,
+        priority: 'medium',
+        channels: {
+          email: true,
+          sms: false,
+          push: false,
+          inApp: true
+        },
+        relatedTransaction: transactions[0]?._id || transactions[0]?.id,
+        actionUrl: '/transactions',
+        actionText: 'View Requests'
+      });
+    } catch (notifError) {
+      console.error('User notification error (non-critical):', notifError);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Bulk checkout request submitted for admin approval',
+      data: transactions
+    });
+  } catch (error) {
+    console.error('Bulk checkout error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error processing bulk checkout',
+      error: error.message
+    });
+  }
+});
+
 // @route   POST /api/transactions/:id/return
 // @desc    Return an item
 // @access  Private
