@@ -14,7 +14,7 @@ const Items = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState('active');
   const [categories, setCategories] = useState([]);
   const [recentCheckouts, setRecentCheckouts] = useState([]);
   const [selectedItems, setSelectedItems] = useState({});
