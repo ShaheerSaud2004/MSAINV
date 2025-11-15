@@ -320,7 +320,7 @@ const Items = () => {
                   <h3 className="font-bold text-lg text-gray-900">{item.name}</h3>
                   <p className="text-sm text-gray-600 mt-1 line-clamp-2">{item.description}</p>
                 </div>
-                <QrCodeIcon className="w-6 h-6 text-gray-400 ml-2" />
+                <QrCodeIcon className="w-6 h-6 text-gray-400 ml-2 mr-8" />
               </div>
             <div className="flex flex-wrap gap-2 mb-3">
               <span className="badge badge-info">{item.category}</span>
