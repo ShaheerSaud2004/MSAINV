@@ -17,6 +17,10 @@ const CheckoutForm = () => {
   const [showWhatsAppMessage, setShowWhatsAppMessage] = useState(false);
   const [createdTransaction, setCreatedTransaction] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [whatsappConfirmations, setWhatsappConfirmations] = useState({
+    copiedMessage: false,
+    sentMessage: false
+  });
   const [formData, setFormData] = useState({
     // User Information
     fullName: user?.name || '',
@@ -124,6 +128,7 @@ ${formData.notes ? `\nAdditional notes: ${formData.notes}` : ''}
 
       if (response.data.success) {
         setCreatedTransaction(response.data.data);
+        setWhatsappConfirmations({ copiedMessage: false, sentMessage: false });
         setShowWhatsAppMessage(true);
         toast.success(response.data.message);
       }
@@ -168,6 +173,7 @@ ${formData.notes ? `\nAdditional notes: ${formData.notes}` : ''}
     try {
       await navigator.clipboard.writeText(message);
       setCopied(true);
+      setWhatsappConfirmations((prev) => ({ ...prev, copiedMessage: true }));
       toast.success('Message copied to clipboard!');
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
@@ -481,32 +487,65 @@ ${formData.notes ? `\nAdditional notes: ${formData.notes}` : ''}
               </p>
             </div>
 
-            <div className="flex gap-3">
-              <button
-                onClick={handleCopyToClipboard}
-                className="flex-1 btn-primary flex items-center justify-center gap-2"
-              >
-                {copied ? (
-                  <>
-                    <CheckIcon className="w-5 h-5" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <ClipboardDocumentIcon className="w-5 h-5" />
-                    Copy to Clipboard
-                  </>
-                )}
-              </button>
-              <button
-                onClick={() => {
-                  setShowWhatsAppMessage(false);
-                  navigate(createdTransaction ? `/transactions/${createdTransaction._id || createdTransaction.id}` : '/transactions');
-                }}
-                className="btn-secondary"
-              >
-                Done
-              </button>
+            <div className="space-y-3">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-900 space-y-2">
+                <label className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4"
+                    checked={whatsappConfirmations.copiedMessage}
+                    onChange={(e) =>
+                      setWhatsappConfirmations((prev) => ({
+                        ...prev,
+                        copiedMessage: e.target.checked
+                      }))
+                    }
+                  />
+                  <span>I copied the WhatsApp message above.</span>
+                </label>
+                <label className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4"
+                    checked={whatsappConfirmations.sentMessage}
+                    onChange={(e) =>
+                      setWhatsappConfirmations((prev) => ({
+                        ...prev,
+                        sentMessage: e.target.checked
+                      }))
+                    }
+                  />
+                  <span>I already sent this message in the Storage WhatsApp chat.</span>
+                </label>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCopyToClipboard}
+                  className="flex-1 btn-primary flex items-center justify-center gap-2"
+                >
+                  {copied ? (
+                    <>
+                      <CheckIcon className="w-5 h-5" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <ClipboardDocumentIcon className="w-5 h-5" />
+                      Copy to Clipboard
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowWhatsAppMessage(false);
+                    navigate(createdTransaction ? `/transactions/${createdTransaction._id || createdTransaction.id}` : '/transactions');
+                  }}
+                  className="btn-secondary flex-1"
+                  disabled={!whatsappConfirmations.copiedMessage || !whatsappConfirmations.sentMessage}
+                >
+                  Done
+                </button>
+              </div>
             </div>
           </div>
         </div>
