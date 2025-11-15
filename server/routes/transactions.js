@@ -146,6 +146,85 @@ router.get('/:id', protect, async (req, res) => {
 // @route   POST /api/transactions/checkout
 // @desc    Checkout an item
 // @access  Private
+async function approveTransactionInternal(transactionId, approver) {
+  const storageService = getStorageService();
+  const userId = approver._id || approver.id;
+
+  const transaction = await storageService.findTransactionById(transactionId);
+
+  if (!transaction) {
+    throw new Error('Transaction not found');
+  }
+
+  if (transaction.status !== 'pending') {
+    throw new Error('Only pending transactions can be approved');
+  }
+
+  const itemId = transaction.item?._id || transaction.item?.id || transaction.item_id || transaction.item;
+  const item = await storageService.findItemById(itemId);
+
+  if (!item) {
+    throw new Error('Item not found');
+  }
+
+  if (item.availableQuantity < transaction.quantity) {
+    throw new Error(`Only ${item.availableQuantity} units available. Cannot approve.`);
+  }
+
+  const updateResult = await storageService.updateTransaction(transactionId, {
+    status: 'active',
+    approvedBy: userId,
+    approvedDate: new Date()
+  });
+
+  if (!updateResult || updateResult.status !== 'active') {
+    throw new Error('Failed to update transaction status');
+  }
+
+  const itemUpdateResult = await storageService.updateItem(itemId, {
+    availableQuantity: item.availableQuantity - transaction.quantity
+  });
+
+  if (!itemUpdateResult) {
+    await storageService.updateTransaction(transactionId, { status: 'pending' });
+    throw new Error('Failed to update item quantities');
+  }
+
+  // Notify user (non-critical)
+  try {
+    const transactionUserId =
+      transaction.user?._id || transaction.user?.id || transaction.user_id || transaction.user;
+
+    await createNotification({
+      recipient: transactionUserId,
+      type: 'approval_approved',
+      title: 'Checkout Approved - Photos Required!',
+      message: `Your checkout request has been approved by ${approver.name || 'an admin'}. IMPORTANT: You MUST upload storage visit photos before closing this transaction.`,
+      priority: 'high',
+      channels: {
+        email: true,
+        sms: false,
+        push: true,
+        inApp: true
+      },
+      relatedTransaction: transactionId,
+      relatedItem: itemId,
+      actionUrl: `/transactions/${transactionId}`,
+      actionText: 'Upload Photos Now'
+    });
+  } catch (notifError) {
+    console.error('Notification error (non-critical):', notifError);
+  }
+
+  const updatedTransaction = await storageService.findTransactionById(transactionId);
+
+  if (!updatedTransaction) {
+    throw new Error('Failed to retrieve updated transaction');
+  }
+
+  return updatedTransaction;
+}
+
 router.post('/checkout', protect, checkPermission('canCheckout'), [
   body('item').notEmpty().withMessage('Item ID is required'),
   body('quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
@@ -637,140 +716,53 @@ router.post('/:id/return', protect, checkPermission('canReturn'), [
 // @access  Private (requires canApprove permission)
 router.post('/:id/approve', protect, checkPermission('canApprove'), async (req, res) => {
   try {
-    const storageService = getStorageService();
-    const userId = req.user._id || req.user.id;
-
-    const transaction = await storageService.findTransactionById(req.params.id);
-
-    if (!transaction) {
-      return res.status(404).json({
-        success: false,
-        message: 'Transaction not found'
-      });
-    }
-
-    if (transaction.status !== 'pending') {
-      return res.status(400).json({
-        success: false,
-        message: 'Only pending transactions can be approved'
-      });
-    }
-
-    // Get item and check availability
-    // Handle both normalized (item object) and raw (item_id) formats
-    const itemId = transaction.item?._id || transaction.item?.id || transaction.item_id || transaction.item;
-    const item = await storageService.findItemById(itemId);
-
-    if (!item) {
-      return res.status(404).json({
-        success: false,
-        message: 'Item not found'
-      });
-    }
-
-    if (item.availableQuantity < transaction.quantity) {
-      return res.status(400).json({
-        success: false,
-        message: `Only ${item.availableQuantity} units available. Cannot approve.`
-      });
-    }
-
-    // Update transaction
-    const updateResult = await storageService.updateTransaction(req.params.id, {
-      status: 'active',
-      approvedBy: userId,
-      approvedDate: new Date()
-    });
-
-    if (!updateResult) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to update transaction status'
-      });
-    }
-
-    // Verify the update worked
-    if (updateResult.status !== 'active') {
-      console.error('Transaction status update failed. Expected: active, Got:', updateResult.status);
-      return res.status(500).json({
-        success: false,
-        message: 'Transaction status was not updated correctly'
-      });
-    }
-
-    // Update item quantities
-    const itemUpdateResult = await storageService.updateItem(itemId, {
-      availableQuantity: item.availableQuantity - transaction.quantity
-    });
-
-    if (!itemUpdateResult) {
-      // Rollback transaction status if item update fails
-      await storageService.updateTransaction(req.params.id, {
-        status: 'pending'
-      });
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to update item quantities'
-      });
-    }
-
-    // Notify user (don't fail approval if notification fails)
-    try {
-      // Handle both normalized (user object) and raw (user_id) formats
-      const transactionUserId = transaction.user?._id || transaction.user?.id || transaction.user_id || transaction.user;
-      await createNotification({
-        recipient: transactionUserId,
-        type: 'approval_approved',
-        title: 'Checkout Approved - Photos Required!',
-        message: `Your checkout request has been approved by ${req.user.name}. IMPORTANT: You MUST upload storage visit photos before closing this transaction.`,
-        priority: 'high',
-        channels: {
-          email: true,
-          sms: false,
-          push: true,
-          inApp: true
-        },
-        relatedTransaction: req.params.id,
-        relatedItem: itemId,
-        actionUrl: `/transactions/${req.params.id}`,
-        actionText: 'Upload Photos Now'
-      });
-    } catch (notifError) {
-      console.error('Notification error (non-critical):', notifError);
-      // Don't fail the approval if notification fails
-    }
-
-    // Fetch the updated transaction to ensure we return the latest data
-    const updatedTransaction = await storageService.findTransactionById(req.params.id);
-    
-    if (!updatedTransaction) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve updated transaction'
-      });
-    }
-
-    // Log for debugging
-    console.log('Transaction approved:', {
-      id: updatedTransaction.id,
-      status: updatedTransaction.status,
-      approvedBy: updatedTransaction.approvedBy,
-      approvedDate: updatedTransaction.approvedDate
-    });
-
+    const result = await approveTransactionInternal(req.params.id, req.user);
     res.json({
       success: true,
       message: 'Transaction approved successfully',
-      data: updatedTransaction
+      data: result
     });
   } catch (error) {
     console.error('Approve error:', error);
-    res.status(500).json({
+    res.status(
+      error.message === 'Transaction not found' ? 404 :
+      error.message.includes('pending') || error.message.includes('units available') ? 400 : 500
+    ).json({
       success: false,
-      message: 'Error approving transaction',
-      error: error.message
+      message: error.message || 'Error approving transaction'
     });
   }
+});
+
+// Bulk approve
+router.post('/approve/bulk', protect, checkPermission('canApprove'), [
+  body('ids').isArray({ min: 1 }).withMessage('Provide at least one transaction id'),
+  handleValidationErrors
+], async (req, res) => {
+  const { ids } = req.body;
+  const uniqueIds = [...new Set(ids)];
+  const results = [];
+  const errors = [];
+
+  for (const id of uniqueIds) {
+    try {
+      const approved = await approveTransactionInternal(id, req.user);
+      results.push(approved);
+    } catch (error) {
+      errors.push({ id, message: error.message });
+    }
+  }
+
+  res.json({
+    success: errors.length === 0,
+    message: errors.length
+      ? `Approved ${results.length} request(s), ${errors.length} failed`
+      : `Approved ${results.length} request(s)`,
+    data: {
+      approved: results,
+      errors
+    }
+  });
 });
 
 // @route   POST /api/transactions/:id/reject

@@ -26,6 +26,7 @@ const AdminPanel = () => {
   const [loginActivity, setLoginActivity] = useState([]);
   const [guestRequests, setGuestRequests] = useState([]);
   const [storageVisits, setStorageVisits] = useState([]);
+  const [selectedTransactions, setSelectedTransactions] = useState({});
   const [stats, setStats] = useState({
     pendingApprovals: 0,
     activeCheckouts: 0,
@@ -108,6 +109,66 @@ const AdminPanel = () => {
       toast.error('Failed to load admin data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Clean up selection when pending list changes
+    setSelectedTransactions(prev => {
+      const next = {};
+      pendingApprovals.forEach(t => {
+        const id = t._id || t.id;
+        if (prev[id]) {
+          next[id] = true;
+        }
+      });
+      return next;
+    });
+  }, [pendingApprovals]);
+
+  const toggleTransactionSelection = (transactionId) => {
+    setSelectedTransactions(prev => {
+      const next = { ...prev };
+      if (next[transactionId]) {
+        delete next[transactionId];
+      } else {
+        next[transactionId] = true;
+      }
+      return next;
+    });
+  };
+
+  const clearSelectedTransactions = () => setSelectedTransactions({});
+
+  const selectAllTransactions = () => {
+    const next = {};
+    pendingApprovals.forEach(t => {
+      const id = t._id || t.id;
+      next[id] = true;
+    });
+    setSelectedTransactions(next);
+  };
+
+  const selectedPendingIds = pendingApprovals
+    .map(t => t._id || t.id)
+    .filter(id => selectedTransactions[id]);
+
+  const handleBulkApprove = async () => {
+    if (!selectedPendingIds.length) {
+      toast.error('Select at least one request to approve.');
+      return;
+    }
+    try {
+      const response = await transactionsAPI.bulkApprove({ ids: selectedPendingIds });
+      if (response.data.success) {
+        toast.success(`Approved ${selectedPendingIds.length} request(s)`);
+      } else {
+        toast.warn(response.data.message || 'Some approvals failed');
+      }
+      clearSelectedTransactions();
+      fetchAdminData();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to approve selected requests');
     }
   };
 
@@ -312,6 +373,24 @@ const AdminPanel = () => {
           {/* Pending Approvals Tab */}
           {activeTab === 'pending' && (
             <div className="space-y-4">
+              {pendingApprovals.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-sm text-blue-900 font-semibold">
+                    {selectedPendingIds.length} of {pendingApprovals.length} selected
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button className="btn-secondary text-sm" onClick={selectAllTransactions}>
+                      Select All
+                    </button>
+                    <button className="btn-secondary text-sm" onClick={clearSelectedTransactions}>
+                      Clear
+                    </button>
+                    <button className="btn-primary text-sm" onClick={handleBulkApprove}>
+                      Approve Selected
+                    </button>
+                  </div>
+                </div>
+              )}
               {pendingApprovals.length === 0 ? (
                 <div className="text-center py-12">
                   <CheckCircleIcon className="w-16 h-16 text-green-500 mx-auto mb-4" />
@@ -320,7 +399,17 @@ const AdminPanel = () => {
                 </div>
               ) : (
                 pendingApprovals.map((transaction) => (
-                  <div key={transaction._id || transaction.id} className="border rounded-lg p-4 bg-yellow-50">
+                  <div key={transaction._id || transaction.id} className={`border rounded-lg p-4 bg-yellow-50 relative ${selectedTransactions[transaction._id || transaction.id] ? 'ring-2 ring-blue-400' : ''}`}>
+                    <div className="absolute top-3 right-3">
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          className="h-5 w-5 text-blue-600 rounded border-gray-300"
+                          checked={!!selectedTransactions[transaction._id || transaction.id]}
+                          onChange={() => toggleTransactionSelection(transaction._id || transaction.id)}
+                        />
+                      </label>
+                    </div>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">

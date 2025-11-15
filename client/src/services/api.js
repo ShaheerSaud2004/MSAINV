@@ -79,6 +79,7 @@ export const transactionsAPI = {
   bulkCheckout: (data) => api.post('/transactions/checkout/bulk', data),
   return: (id, data) => api.post(`/transactions/${id}/return`, data),
   approve: (id) => api.post(`/transactions/${id}/approve`),
+  bulkApprove: (data) => api.post('/transactions/approve/bulk', data),
   reject: (id, data) => api.post(`/transactions/${id}/reject`, data),
   extend: (id, data) => api.post(`/transactions/${id}/extend`, data),
 };
