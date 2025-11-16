@@ -1,11 +1,44 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { itemsAPI, transactionsAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { PlusIcon, MagnifyingGlassIcon, QrCodeIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, MagnifyingGlassIcon, QrCodeIcon, ClockIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
+
+const normalizeString = (value) =>
+  (value || '')
+    .toString()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const tokenize = (value) => normalizeString(value).split(' ').filter((token) => token.length >= 2);
+
+const calculateSimilarity = (queryText, targetText) => {
+  const queryTokens = tokenize(queryText);
+  const targetTokens = tokenize(targetText);
+
+  if (!queryTokens.length || !targetTokens.length) return 0;
+
+  const targetSet = new Set(targetTokens);
+  let hits = 0;
+
+  queryTokens.forEach((token) => {
+    if (targetSet.has(token)) {
+      hits += 1.5;
+    } else if (targetTokens.some((targetToken) => targetToken.includes(token) || token.includes(targetToken))) {
+      hits += 1;
+    }
+  });
+
+  const coverageScore = Math.min(1, hits / queryTokens.length);
+  const contiguousBonus = normalizeString(targetText).includes(normalizeString(queryText)) ? 0.25 : 0;
+
+  return Math.min(1, coverageScore + contiguousBonus);
+};
 
 const Items = () => {
   const { hasPermission } = useAuth();
@@ -18,6 +51,9 @@ const Items = () => {
   const [categories, setCategories] = useState([]);
   const [recentCheckouts, setRecentCheckouts] = useState([]);
   const [selectedItems, setSelectedItems] = useState({});
+  const [bulkSearchInput, setBulkSearchInput] = useState('');
+  const [bulkSearchResults, setBulkSearchResults] = useState([]);
+  const [isSearchingBulk, setIsSearchingBulk] = useState(false);
   useEffect(() => {
     if (!items.length) {
       if (Object.keys(selectedItems).length) {
@@ -61,6 +97,73 @@ const Items = () => {
       return;
     }
     navigate(`/checkout/multi?items=${selectedIds.join(',')}`);
+  };
+
+  const searchableItems = useMemo(() => {
+    return items.map((item) => ({
+      item,
+      searchableText: normalizeString(
+        [
+          item.name,
+          item.description,
+          item.category,
+          item.sku,
+          item.location?.bin,
+          item.location?.room,
+          item.tags?.join(' '),
+          item.keywords?.join(' ')
+        ]
+          .filter(Boolean)
+          .join(' ')
+      )
+    }));
+  }, [items]);
+
+  const handleBulkLookup = () => {
+    if (!items.length) {
+      toast.error('Items are still loading. Please try again shortly.');
+      return;
+    }
+
+    const lines = bulkSearchInput
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    if (!lines.length) {
+      toast.error('Paste at least one line to search.');
+      setBulkSearchResults([]);
+      return;
+    }
+
+    setIsSearchingBulk(true);
+
+    const results = lines.map((line, index) => {
+      const normalizedQuery = normalizeString(line);
+
+      const scoredMatches = searchableItems
+        .map(({ item, searchableText }) => ({
+          item,
+          score: calculateSimilarity(normalizedQuery, searchableText)
+        }))
+        .filter(({ score }) => score >= 0.2)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3);
+
+      return {
+        id: `${index}-${line}`,
+        query: line,
+        matches: scoredMatches,
+        bestScore: scoredMatches[0]?.score || 0
+      };
+    });
+
+    setBulkSearchResults(results);
+    setIsSearchingBulk(false);
+  };
+
+  const addMatchToSelection = (itemId) => {
+    setSelectedItems((prev) => ({ ...prev, [itemId]: true }));
   };
 
 
@@ -279,6 +382,111 @@ const Items = () => {
                 >
                   {cat}
                 </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Bulk Similarity Search */}
+      <div className="card space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Paste &amp; Find Items</h2>
+            <p className="text-sm text-gray-600">
+              Paste any text (descriptions, bullet lists, spreadsheets). We&apos;ll look for similar items automatically.
+            </p>
+          </div>
+            <ClipboardDocumentIcon className="w-6 h-6 text-gray-400" />
+        </div>
+        <textarea
+          rows="4"
+          className="input-field font-mono"
+          placeholder="Example:&#10;- black table cloth&#10;- gold lantern centerpiece&#10;- acrylic podium sign"
+          value={bulkSearchInput}
+          onChange={(e) => setBulkSearchInput(e.target.value)}
+        />
+        <div className="flex flex-wrap gap-3">
+          <button
+            className="btn-primary"
+            onClick={handleBulkLookup}
+            disabled={isSearchingBulk}
+          >
+            {isSearchingBulk ? 'Searching...' : 'Find Similar Items'}
+          </button>
+          <button
+            className="btn-secondary"
+            onClick={() => {
+              setBulkSearchInput('');
+              setBulkSearchResults([]);
+            }}
+          >
+            Clear
+          </button>
+        </div>
+
+        {bulkSearchResults.length > 0 && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Results ({bulkSearchResults.length})
+            </h3>
+            <div className="space-y-4">
+              {bulkSearchResults.map((result) => (
+                <div key={result.id} className="border rounded-xl p-4 bg-gray-50">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Input</p>
+                  <p className="font-mono text-sm text-gray-900 mb-3">{result.query}</p>
+                  {result.matches.length === 0 ? (
+                    <p className="text-sm text-red-500 font-semibold">
+                      No close matches found. Try different keywords.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {result.matches.map(({ item, score }) => {
+                        const itemId = item._id || item.id;
+                        const percent = Math.round(score * 100);
+                        const canSelect = item.isCheckoutable && item.status === 'active' && item.availableQuantity > 0;
+                        const isSelected = !!selectedItems[itemId];
+
+                        return (
+                          <div key={`${result.id}-${itemId}`} className="bg-white rounded-lg p-3 border">
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <p className="font-semibold text-gray-900">{item.name}</p>
+                                <p className="text-xs text-gray-500">
+                                  {item.category || 'Uncategorized'} • Bin {item.location?.bin || 'N/A'} • SKU {item.sku || 'N/A'}
+                                </p>
+                              </div>
+                              <span
+                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
+                                  percent >= 70 ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                                }`}
+                              >
+                                {percent}% match
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              <Link
+                                to={`/items/${itemId}`}
+                                className="btn-secondary text-sm"
+                              >
+                                View Item
+                              </Link>
+                              {canSelect && (
+                                <button
+                                  type="button"
+                                  className={`btn-primary text-sm ${isSelected ? '!bg-green-600 !border-green-600' : ''}`}
+                                  onClick={() => addMatchToSelection(itemId)}
+                                >
+                                  {isSelected ? 'Added for Bulk Checkout' : 'Add to Bulk Checkout'}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>
