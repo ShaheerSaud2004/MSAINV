@@ -68,8 +68,8 @@ app.use(morgan('dev')); // Logging
 // Rate limiting - only apply in production
 if (process.env.NODE_ENV === 'production') {
   const limiter = rateLimit({
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000, // 15 minutes
+    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10) || 100, // limit each IP to 100 requests per windowMs
     standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
     validate: {
@@ -81,7 +81,26 @@ if (process.env.NODE_ENV === 'production') {
       return req.headers['x-forwarded-for']?.split(',')[0] || req.ip || req.connection.remoteAddress;
     }
   });
-  app.use('/api/', limiter);
+
+  const rateLimitSkipPaths = new Set([
+    '/api/auth/login',
+    '/api/auth/register',
+    '/api/auth/me',
+    '/api/auth/reset-password',
+    '/api/health',
+    '/auth/login',
+    '/auth/register',
+    '/auth/me',
+    '/auth/reset-password',
+    '/health'
+  ]);
+
+  app.use('/api', (req, res, next) => {
+    if (rateLimitSkipPaths.has(req.path) || rateLimitSkipPaths.has(`${req.baseUrl}${req.path}`)) {
+      return next();
+    }
+    return limiter(req, res, next);
+  });
 }
 
 // Routes
