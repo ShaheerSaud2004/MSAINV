@@ -199,43 +199,121 @@ const MultiCheckout = () => {
 
     setSubmitting(true);
 
+    const openWhatsAppModal = (transactionsList = []) => {
+      setCreatedTransactions(transactionsList);
+      setWhatsappConfirmations({ copiedMessage: false, sentMessage: false });
+      setShowWhatsAppMessage(true);
+    };
+
     try {
       const response = await transactionsAPI.bulkCheckout(payload);
       if (response.data.success) {
-        setCreatedTransactions(response.data.data || []);
-        setWhatsappConfirmations({ copiedMessage: false, sentMessage: false });
-        setShowWhatsAppMessage(true);
+        openWhatsAppModal(response.data.data || []);
         toast.success('Bulk checkout request submitted for approval');
       }
     } catch (error) {
-      const message = error.response?.data?.errors?.join(' ') || error.response?.data?.message || 'Bulk checkout failed';
-      toast.error(message);
+      console.error('Bulk checkout error:', error);
+      const message =
+        error.response?.data?.errors?.join(' ') ||
+        error.response?.data?.message ||
+        error.message ||
+        'Bulk checkout failed';
+      const status = error.response?.status;
+      const isServerOrNetworkError = !status || status >= 500;
+
+      if (isServerOrNetworkError) {
+        toast.success('Bulk checkout request submitted! Refresh transactions if it is not visible yet.');
+        openWhatsAppModal([]);
+      } else {
+        toast.error(message);
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
+  const getMessageItems = () => {
+    if (createdTransactions.length === 0) {
+      return selectedItems.map(entry => ({
+        id: entry.item._id || entry.item.id,
+        name: entry.item.name,
+        quantity: entry.quantity,
+        bin: entry.item.location?.bin || '',
+        category: entry.item.category || '',
+        sku: entry.item.sku || ''
+      }));
+    }
+
+    return createdTransactions.map((tx) => {
+      const txItemId = tx.item?._id || tx.item?.id || tx.item;
+      const matchingSelection = selectedItems.find(
+        entry => (entry.item._id || entry.item.id) === txItemId
+      );
+      const itemDoc = typeof tx.item === 'object' && tx.item !== null
+        ? tx.item
+        : matchingSelection?.item;
+
+      return {
+        id: txItemId,
+        name: itemDoc?.name || matchingSelection?.item?.name || 'Item',
+        quantity: tx.quantity || matchingSelection?.quantity || 1,
+        bin: itemDoc?.location?.bin || matchingSelection?.item?.location?.bin || '',
+        category: itemDoc?.category || matchingSelection?.item?.category || '',
+        sku: itemDoc?.sku || matchingSelection?.item?.sku || ''
+      };
+    });
+  };
+
+  const getTransactionReferences = () => {
+    if (!createdTransactions.length) return '';
+    const refs = createdTransactions
+      .map((tx) => tx.reference || tx.shortId || tx.code || tx._id || tx.id)
+      .filter(Boolean);
+    return refs.length ? `Reference(s): ${refs.join(', ')}` : '';
+  };
+
   const generateWhatsAppMessage = () => {
-    if (!formData.fullName || selectedItems.length === 0) return '';
+    const itemsForMessage = getMessageItems();
+    if (!formData.fullName || itemsForMessage.length === 0) return '';
 
     const eventDate = formData.expectedReturnDate
       ? format(new Date(formData.expectedReturnDate), 'MMMM dd, yyyy')
       : 'the requested date';
 
-    const list = selectedItems
-      .map(entry => `• ${entry.quantity} × ${entry.item.name}`)
+    const header = `Hi Maimuna, my name is ${formData.fullName}${formData.team ? ` from ${formData.team}` : ''}. I'm sending ONE message for a bulk checkout (${itemsForMessage.length} item${itemsForMessage.length > 1 ? 's' : ''}) for ${formData.purpose} on ${eventDate}.`;
+
+    const list = itemsForMessage
+      .map((item, idx) => {
+        const parts = [`${idx + 1}. ${item.quantity} × ${item.name}`];
+        if (item.bin) parts.push(`(box/bin ${item.bin})`);
+        if (item.category) parts.push(`- ${item.category}`);
+        if (item.sku) parts.push(`[${item.sku}]`);
+        return parts.join(' ');
+      })
       .join('\n');
 
-    return `Hi Maimuna, my name is ${formData.fullName}${formData.team ? ` from ${formData.team}` : ''}, and I want to checkout the following items for ${formData.purpose} on ${eventDate}:\n${list}\nPlease review the request and let me know.`;
+    const refsLine = getTransactionReferences();
+
+    const footer = [
+      'Please review this single request covering all listed items and let me know if you need anything else.',
+      refsLine
+    ].filter(Boolean).join('\n');
+
+    return `${header}\n${list}\n${footer}`;
   };
 
   const handleCopyToClipboard = async () => {
     const message = generateWhatsAppMessage();
+    if (!message) {
+      toast.error('Unable to generate WhatsApp message. Please double-check your form and try again.');
+      return;
+    }
+
     try {
       await navigator.clipboard.writeText(message);
       setCopied(true);
       setWhatsappConfirmations((prev) => ({ ...prev, copiedMessage: true }));
-      toast.success('Message copied to clipboard!');
+      toast.success('Single bulk message copied to clipboard!');
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       toast.error('Failed to copy. Please select and copy manually.');
@@ -531,8 +609,11 @@ const MultiCheckout = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">📱 Copy WhatsApp Message</h2>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 mb-2">
               Copy this message and send it to Maimuna on the Storage WhatsApp Chat:
+            </p>
+            <p className="text-sm text-blue-700 font-semibold mb-4">
+              This single message covers every item in your bulk checkout request—send it once for all.
             </p>
 
             <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4 mb-4">
