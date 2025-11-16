@@ -95,8 +95,28 @@ if (process.env.NODE_ENV === 'production') {
     '/health'
   ]);
 
+  const rateLimitSkipPrefixes = [
+    '/api/analytics',
+    '/api/items',
+    '/items',
+    '/api/transactions',
+    '/transactions',
+    '/api/notifications',
+    '/notifications',
+    '/api/storage-visits',
+    '/storage-visits',
+    '/api/guest-requests',
+    '/guest-requests'
+  ];
+
   app.use('/api', (req, res, next) => {
-    if (rateLimitSkipPaths.has(req.path) || rateLimitSkipPaths.has(`${req.baseUrl}${req.path}`)) {
+    const fullPath = `${req.baseUrl}${req.path}`;
+    const shouldSkip =
+      rateLimitSkipPaths.has(req.path) ||
+      rateLimitSkipPaths.has(fullPath) ||
+      rateLimitSkipPrefixes.some((prefix) => req.path.startsWith(prefix) || fullPath.startsWith(prefix));
+
+    if (shouldSkip) {
       return next();
     }
     return limiter(req, res, next);
