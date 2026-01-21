@@ -32,7 +32,7 @@
     "vercel-build": "react-scripts build"
   },
   "engines": {
-    "node": "20.17.0",
+    "node": "20",
     "npm": ">=6.0.0"
   },
   "eslintConfig": {
