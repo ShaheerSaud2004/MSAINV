@@ -31,7 +31,7 @@ connectDatabase();
 // Middleware
 app.use(helmet()); // Security headers
 
-// CORS - Allow Railway or local development
+// CORS - Allow Railway, Vercel, or local development
 const allowedOrigins = [
   process.env.CLIENT_URL,
   'http://localhost:3000',
@@ -39,7 +39,9 @@ const allowedOrigins = [
   'http://localhost:3021', // Custom development port
   'http://localhost:3022',
   process.env.RAILWAY_STATIC_URL,
-  process.env.RAILWAY_PUBLIC_DOMAIN
+  process.env.RAILWAY_PUBLIC_DOMAIN,
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+  process.env.VERCEL ? `https://${process.env.VERCEL}` : null
 ].filter(Boolean);
 
 app.use(cors({
@@ -47,15 +49,23 @@ app.use(cors({
     // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
     
-    // In production on Railway, allow same domain
-    if (process.env.NODE_ENV === 'production' && !process.env.CLIENT_URL) {
-      return callback(null, true);
+    // In production on Vercel/Railway, allow same domain and vercel.app domains
+    if (process.env.NODE_ENV === 'production') {
+      // Allow same origin (when API and frontend are on same domain)
+      if (!origin || origin.includes('vercel.app') || origin.includes('localhost')) {
+        return callback(null, true);
+      }
+      // Allow if in allowedOrigins
+      if (allowedOrigins.length === 0 || allowedOrigins.some(allowed => origin.includes(allowed))) {
+        return callback(null, true);
+      }
     }
     
+    // Allow all in development or if no CLIENT_URL set
     if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.length === 0) {
       callback(null, true);
     } else {
-      callback(null, true); // Allow all in development
+      callback(null, true); // Allow all for now
     }
   },
   credentials: true
@@ -68,8 +78,8 @@ app.use(morgan('dev')); // Logging
 // Rate limiting - only apply in production
 if (process.env.NODE_ENV === 'production') {
   const limiter = rateLimit({
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000, // 15 minutes
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10) || 100, // limit each IP to 100 requests per windowMs
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
+    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
     standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
     validate: {
@@ -81,46 +91,7 @@ if (process.env.NODE_ENV === 'production') {
       return req.headers['x-forwarded-for']?.split(',')[0] || req.ip || req.connection.remoteAddress;
     }
   });
-
-  const rateLimitSkipPaths = new Set([
-    '/api/auth/login',
-    '/api/auth/register',
-    '/api/auth/me',
-    '/api/auth/reset-password',
-    '/api/health',
-    '/auth/login',
-    '/auth/register',
-    '/auth/me',
-    '/auth/reset-password',
-    '/health'
-  ]);
-
-  const rateLimitSkipPrefixes = [
-    '/api/analytics',
-    '/api/items',
-    '/items',
-    '/api/transactions',
-    '/transactions',
-    '/api/notifications',
-    '/notifications',
-    '/api/storage-visits',
-    '/storage-visits',
-    '/api/guest-requests',
-    '/guest-requests'
-  ];
-
-  app.use('/api', (req, res, next) => {
-    const fullPath = `${req.baseUrl}${req.path}`;
-    const shouldSkip =
-      rateLimitSkipPaths.has(req.path) ||
-      rateLimitSkipPaths.has(fullPath) ||
-      rateLimitSkipPrefixes.some((prefix) => req.path.startsWith(prefix) || fullPath.startsWith(prefix));
-
-    if (shouldSkip) {
-      return next();
-    }
-    return limiter(req, res, next);
-  });
+  app.use('/api/', limiter);
 }
 
 // Routes
