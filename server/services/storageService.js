@@ -5,7 +5,19 @@ const { v4: uuidv4 } = require('uuid');
 // JSON File Storage Service
 class JSONStorageService {
   constructor() {
-    this.dataDir = path.join(__dirname, '../storage/data');
+    // Use /tmp in serverless environments (Vercel, AWS Lambda, etc.)
+    // Check if we're in a serverless environment
+    const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.LAMBDA_TASK_ROOT;
+    
+    if (isServerless) {
+      // Use /tmp directory which is writable in serverless environments
+      this.dataDir = '/tmp/msa-inventory-storage';
+      console.log('📦 Serverless environment detected, using /tmp for storage');
+    } else {
+      // Use local storage directory for development
+      this.dataDir = path.join(__dirname, '../storage/data');
+    }
+    
     this.collections = {
       users: 'users.json',
       items: 'items.json',
@@ -18,7 +30,26 @@ class JSONStorageService {
 
   async init() {
     try {
-      await fs.mkdir(this.dataDir, { recursive: true });
+      // Try to create directory, but don't fail if it already exists
+      try {
+        await fs.mkdir(this.dataDir, { recursive: true });
+      } catch (mkdirError) {
+        // Directory might already exist, or we might be in read-only filesystem
+        // Try to access it instead
+        try {
+          await fs.access(this.dataDir);
+        } catch (accessError) {
+          // If we can't create or access, log warning but continue
+          console.warn('⚠️  Could not create storage directory, using in-memory fallback:', accessError.message);
+          this.useInMemory = true;
+          this.inMemoryData = {};
+          // Initialize in-memory collections
+          for (const [key] of Object.entries(this.collections)) {
+            this.inMemoryData[key] = [];
+          }
+          return;
+        }
+      }
       
       // Initialize empty collections if they don't exist
       for (const [key, filename] of Object.entries(this.collections)) {
@@ -31,28 +62,63 @@ class JSONStorageService {
       }
     } catch (error) {
       console.error('Error initializing storage:', error);
+      // Fallback to in-memory storage
+      console.warn('⚠️  Falling back to in-memory storage (data will be lost on restart)');
+      this.useInMemory = true;
+      this.inMemoryData = {};
+      for (const [key] of Object.entries(this.collections)) {
+        this.inMemoryData[key] = [];
+      }
     }
   }
 
   async readCollection(collectionName) {
+    // Use in-memory storage if filesystem is not available
+    if (this.useInMemory) {
+      return this.inMemoryData[collectionName] || [];
+    }
+    
     const filePath = path.join(this.dataDir, this.collections[collectionName]);
     try {
       const data = await fs.readFile(filePath, 'utf8');
       return JSON.parse(data);
     } catch (error) {
       console.error(`Error reading ${collectionName}:`, error);
-      return [];
+      // Fallback to in-memory if file read fails
+      if (!this.useInMemory) {
+        this.useInMemory = true;
+        this.inMemoryData = {};
+        for (const [key] of Object.entries(this.collections)) {
+          this.inMemoryData[key] = [];
+        }
+      }
+      return this.inMemoryData[collectionName] || [];
     }
   }
 
   async writeCollection(collectionName, data) {
+    // Use in-memory storage if filesystem is not available
+    if (this.useInMemory) {
+      this.inMemoryData[collectionName] = data;
+      return true;
+    }
+    
     const filePath = path.join(this.dataDir, this.collections[collectionName]);
     try {
       await fs.writeFile(filePath, JSON.stringify(data, null, 2));
       return true;
     } catch (error) {
       console.error(`Error writing ${collectionName}:`, error);
-      return false;
+      // Fallback to in-memory if file write fails
+      if (!this.useInMemory) {
+        this.useInMemory = true;
+        this.inMemoryData = {};
+        for (const [key] of Object.entries(this.collections)) {
+          this.inMemoryData[key] = [];
+        }
+      }
+      this.inMemoryData[collectionName] = data;
+      return true;
     }
   }
 
