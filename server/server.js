@@ -26,7 +26,73 @@ if (!process.env.JWT_SECRET) {
 }
 
 // Connect to database (MongoDB or JSON storage)
-connectDatabase();
+connectDatabase().then(() => {
+  // Auto-initialize: Create default admin user if no users exist
+  initializeDefaultUsers();
+});
+
+// Auto-initialize default admin user if database is empty
+async function initializeDefaultUsers() {
+  try {
+    const { getStorageService } = require('./services/storageService');
+    const storageService = getStorageService();
+    const bcrypt = require('bcryptjs');
+    
+    // Check if any users exist
+    const users = await storageService.findAllUsers();
+    
+    if (users.length === 0) {
+      console.log('👤 No users found. Creating default admin user...');
+      
+      // Create default admin user
+      const salt = await bcrypt.genSalt(12);
+      const hashedPassword = await bcrypt.hash('admin123', salt);
+      
+      const adminUser = {
+        name: 'Admin User',
+        email: 'admin@msa.com',
+        password: hashedPassword,
+        role: 'admin',
+        status: 'active',
+        phone: '',
+        team: '',
+        department: '',
+        permissions: {
+          canViewItems: true,
+          canManageItems: true,
+          canCheckout: true,
+          canReturn: true,
+          canApproveTransactions: true,
+          canManageUsers: true,
+          canViewAnalytics: true,
+          canManageSettings: true,
+          canDeleteItems: true,
+          canOverrideRestrictions: true
+        },
+        preferences: {
+          emailNotifications: true,
+          smsNotifications: false,
+          pushNotifications: true,
+          language: 'en',
+          theme: 'light'
+        },
+        profile: {
+          avatar: '',
+          bio: ''
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      await storageService.createUser(adminUser);
+      console.log('✅ Default admin user created: admin@msa.com / admin123');
+      console.log('⚠️  IMPORTANT: Change the default password after first login!');
+    }
+  } catch (error) {
+    console.error('Error initializing default users:', error);
+    // Don't fail server startup if initialization fails
+  }
+}
 
 // Middleware
 app.use(helmet()); // Security headers
