@@ -32,7 +32,6 @@ Thumbs.db
 coverage
 
 # Build outputs
-client/build
 server/dist
 
 # Misc
