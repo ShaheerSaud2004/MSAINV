@@ -51,13 +51,34 @@ class JSONStorageService {
         }
       }
       
-      // Initialize empty collections if they don't exist
+      // Check if we're in serverless and need to copy initial data
+      const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.LAMBDA_TASK_ROOT;
+      const sourceDataDir = path.join(__dirname, '../storage/data');
+      
+      // Initialize collections - copy from source if in serverless and source exists
       for (const [key, filename] of Object.entries(this.collections)) {
         const filePath = path.join(this.dataDir, filename);
+        const sourcePath = path.join(sourceDataDir, filename);
+        
         try {
+          // Check if file already exists in destination
           await fs.access(filePath);
+          // File exists, use it
         } catch {
-          await fs.writeFile(filePath, JSON.stringify([], null, 2));
+          // File doesn't exist, try to copy from source if available
+          if (isServerless) {
+            try {
+              const sourceData = await fs.readFile(sourcePath, 'utf8');
+              await fs.writeFile(filePath, sourceData);
+              console.log(`✅ Copied initial ${key} data from source`);
+            } catch (sourceError) {
+              // Source doesn't exist, create empty file
+              await fs.writeFile(filePath, JSON.stringify([], null, 2));
+            }
+          } else {
+            // Not serverless, just create empty file
+            await fs.writeFile(filePath, JSON.stringify([], null, 2));
+          }
         }
       }
     } catch (error) {

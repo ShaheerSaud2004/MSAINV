@@ -11,8 +11,8 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
-# Storage data (JSON files won't persist on Vercel anyway)
-server/storage/data/*.json
+# Storage data - Keep the JSON files so they can be copied to /tmp on startup
+# server/storage/data/*.json
 
 # Logs
 logs
